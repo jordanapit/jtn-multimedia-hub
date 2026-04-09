@@ -1,0 +1,67 @@
+{
+  "name": "jtn-multimedia-hub",
+  "productName": "JTN Multimedia Hub",
+  "version": "1.2.260407",
+  "description": "Portal pelayanan Seksi Multimedia HKBP Jatinegara.",
+  "copyright": "Copyright © 2026 Seksi Multimedia HKBP Jatinegara.",
+  "author": "Multimedia HKBP Jatinegara",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.hkbpjatinegara.multimediahub",
+    "productName": "JTN Multimedia Hub",
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://absen.hkbpjtn.web.id/multimedia/updates"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/picture/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "JTN Multimedia Hub",
+      "installerIcon": "assets/picture/icon.ico",
+      "uninstallerIcon": "assets/picture/icon.ico",
+      "installerHeaderIcon": "assets/picture/icon.ico",
+      "deleteAppDataOnUninstall": true,
+      "license": "assets/teks/lisensi.txt",
+      "installerSidebar": "assets/picture/sidebar.bmp",
+      "uninstallerSidebar": "assets/picture/sidebar.bmp",
+      "include": "installer.nsh"
+    },
+    "files": [
+      "**/*",
+      "!dist/*",
+      "!src/*"
+    ]
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.11.1",
+    "@electron-forge/maker-deb": "^7.11.1",
+    "@electron-forge/maker-rpm": "^7.11.1",
+    "@electron-forge/maker-squirrel": "^7.11.1",
+    "@electron-forge/maker-zip": "^7.11.1",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
+    "@electron-forge/plugin-fuses": "^7.11.1",
+    "@electron/fuses": "^1.8.0",
+    "electron": "^41.0.3",
+    "electron-builder": "^26.7.0"
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.8.3"
+  }
+}

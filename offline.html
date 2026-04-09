@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tidak Ada Koneksi Internet</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #CFE4FF 0%, #F6F5FF 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Electron Window Controls */
+        .electron-controls {
+            display: none;
+        }
+
+        body.electron-app .electron-controls {
+            position: fixed;
+            top: 0;
+            right: 0;
+            display: flex;
+            z-index: 100000;
+            -webkit-app-region: no-drag;
+        }
+
+        .win-btn {
+            width: 46px;
+            height: 32px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s ease;
+            -webkit-app-region: no-drag;
+        }
+
+        .win-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .win-btn.close:hover {
+            background: #c42b1c;
+        }
+
+        .win-btn.close:hover .win-close::before,
+        .win-btn.close:hover .win-close::after {
+            background: white;
+        }
+
+        .win-min {
+            width: 10px;
+            height: 1px;
+            background: #1a1a1a;
+        }
+
+        .win-max {
+            width: 10px;
+            height: 10px;
+            border: 1px solid #1a1a1a;
+        }
+
+        .win-close {
+            width: 10px;
+            height: 10px;
+            position: relative;
+        }
+
+        .win-close::before,
+        .win-close::after {
+            content: "";
+            position: absolute;
+            width: 10px;
+            height: 1px;
+            background: #1a1a1a;
+            top: 4.5px;
+            left: 0;
+        }
+
+        .win-close::before {
+            transform: rotate(45deg);
+        }
+
+        .win-close::after {
+            transform: rotate(-45deg);
+        }
+
+        body.electron-app {
+            -webkit-app-region: drag;
+        }
+
+        body.electron-app .offline-card {
+            -webkit-app-region: no-drag;
+        }
+
+        /* Offline Card */
+        .offline-card {
+            background: white;
+            border-radius: 24px;
+            padding: 50px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            text-align: left;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .icon-container {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .icon-container svg {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+        }
+
+        p {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .retry-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .retry-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .retry-button:active {
+            transform: translateY(0);
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .status-text {
+            font-size: 14px;
+            color: #999;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ELECTRON WINDOW CONTROLS -->
+    <!-- div class="electron-controls">
+        <button onclick="if(window.electronAPI) electronAPI.minimize()" class="win-btn" title="Minimize">
+            <span class="win-min"></span>
+        </button>
+        <button onclick="if(window.electronAPI) electronAPI.maximize()" class="win-btn" title="Maximize">
+            <span class="win-max"></span>
+        </button>
+        <button onclick="if(window.electronAPI) electronAPI.close()" class="win-btn close" title="Close">
+            <span class="win-close"></span>
+        </button>
+    </div -->
+
+    <div class="offline-card">
+        <div class="icon-container">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+            </svg>
+        </div>
+
+        <h1>Tidak ada koneksi internet.</h1>
+        <p>Pastikan komputer anda terhubung ke jaringan internet untuk membuka aplikasi ini.</p>
+
+        <button class="retry-button" onclick="retryConnection()">
+            <span id="btn-text">Coba Lagi</span>
+            <span id="loading" class="loading" style="display: none;"></span>
+        </button>
+
+        <div class="status-text" id="status-text">
+            Menunggu koneksi internet...
+        </div>
+    </div>
+
+    <script>
+        // Detect Electron
+        if (window.electronAPI) {
+            document.body.classList.add('electron-app');
+        }
+
+        // Logic baru untuk memanggil fungsi di main process
+        function reloadToMainPage() {
+            if (window.electronAPI) {
+                // Panggil fungsi jembatan yang kita buat di preload.js
+                window.electronAPI.retryConnection();
+            } else {
+                // Fallback kalau dibuka di browser biasa
+                location.reload();
+            }
+        }
+
+        function retryConnection() {
+            const btnText = document.getElementById('btn-text');
+            const loading = document.getElementById('loading');
+            const statusText = document.getElementById('status-text');
+
+            btnText.style.display = 'none';
+            loading.style.display = 'inline-block';
+            statusText.textContent = 'Memeriksa koneksi...';
+
+            // Coba panggil URL asli langsung
+            setTimeout(() => {
+                reloadToMainPage();
+            }, 1000);
+        }
+
+        // Auto-retry update
+        let retryCount = 0;
+        
+        // Listener bawaan browser: kalau internet nyala tiba-tiba, langsung gas!
+        window.addEventListener('online', () => {
+             document.getElementById('status-text').textContent = "Koneksi terdeteksi! Memuat ulang...";
+             reloadToMainPage();
+        });
+
+        setInterval(() => {
+            if (navigator.onLine) {
+                 // Kalau browser bilang online, coba fetch test
+                 fetch('https://www.google.com/favicon.ico', { 
+                    mode: 'no-cors',
+                    cache: 'no-cache'
+                })
+                .then(() => {
+                    // Online beneran! Panggil fungsi reload ke URL asli
+                    reloadToMainPage();
+                })
+                .catch(() => {
+                    retryCount++;
+                    document.getElementById('status-text').textContent = 
+                        `Mencoba kembali otomatis... (${retryCount})`;
+                });
+            }
+        }, 5000); // Aku ubah jadi 5 detik biar lebih responsif
+    </script>
+</body>
+</html>

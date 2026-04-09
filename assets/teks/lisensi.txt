@@ -1,0 +1,32 @@
+=========================================================
+SYARAT DAN KETENTUAN PENGGUNAAN
+APLIKASI JTN MULTIMEDIA HUB
+=========================================================
+
+Syalom! Selamat datang di JTN Multimedia Hub.
+
+Aplikasi ini dikembangkan secara khusus untuk mendukung operasional dan pelayanan Seksi Multimedia HKBP Jatinegara. Dengan menginstal dan menggunakan aplikasi ini, Anda setuju dengan beberapa pedoman sederhana berikut:
+
+1. PENGGUNAAN KHUSUS PELAYANAN
+Aplikasi ini adalah fasilitas internal tim. Gunakanlah aplikasi ini dengan penuh tanggung jawab untuk mendukung tugas pelayanan kita bersama, seperti melihat jadwal, melakukan presensi, dan kebutuhan operasional multimedia lainnya.
+
+2. KERAHASIAAN DATA
+Data yang terdapat di dalam aplikasi ini (seperti informasi petugas, jadwal, dan operasional gereja) bersifat internal. Mohon untuk menjaga kerahasiaannya dan tidak membagikan akses login (email & password) Anda kepada pihak yang tidak berkepentingan.
+
+3. HAK KEPEMILIKAN
+Sistem ini dirancang, dibangun, dan dikelola secara mandiri oleh tim Multimedia. Mohon untuk tidak membongkar, memodifikasi, atau mendistribusikan ulang aplikasi ini tanpa koordinasi dengan tim pengembang.
+
+4. PEMBARUAN (UPDATE) APLIKASI
+Demi menjaga kelancaran operasional ibadah dan pelayanan, tim pengembang akan merilis pembaruan (update) secara berkala. Anda diharapkan bersedia memperbarui aplikasi apabila muncul pemberitahuan versi terbaru.
+
+5. DISCLAIMER & MASUKAN
+Aplikasi ini terus dikembangkan agar menjadi lebih baik. Jika Anda menemukan kendala (bug), aplikasi tertutup tiba-tiba, atau memiliki saran fitur yang bisa mempermudah pekerjaan tim, jangan ragu untuk melaporkannya kepada admin.
+
+=========================================================
+Akhir kata, selamat melayani! Biarlah segala jerih payah dan apa yang kita kerjakan melalui fasilitas ini boleh menjadi hormat dan kemuliaan bagi nama Tuhan.
+
+"Tetapi segala sesuatu harus berlangsung dengan sopan dan teratur." 
+(1 Korintus 14:40)
+
+Tim Pengembang
+Seksi Multimedia HKBP Jatinegara

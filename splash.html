@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JTN Multimedia Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@700&family=Instrument+Sans:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            cursor: wait;
+        }
+
+        body {
+            background: transparent !important;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            opacity: 1;
+            transition: opacity 0.4s ease-in-out; 
+            
+            /* TAMBAHKAN 2 BARIS INI: Memberi ruang aman 50px di semua sisi untuk shadow */
+            padding: 50px; 
+            box-sizing: border-box;
+        }
+
+        .splash-container {
+            background: linear-gradient(135deg, #CFE4FF 0%, #F6F5FF 100%);
+            
+            /* UBAH JADI 100% (sebelumnya 95%) */
+            width: 100%;
+            height: 100%;
+            
+            border-radius: 24px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            -webkit-app-region: no-drag; 
+        }
+
+        /* Animasi teks loading bernapas */
+        @keyframes pulseText {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        #introCanvas {
+            width: 100%;
+            max-width: 350px; 
+            height: auto;
+            pointer-events: none; 
+            display: block;
+            margin-bottom: 0; 
+        }
+
+        /* 1. Biarkan teks mengalir rapi di bawah video (hapus absolute & bottom) */
+        .intro-text-container {
+            text-align: center;
+            margin-top: -10px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0; /* Ubah jadi 0 agar tidak ada jarak ekstra */
+        }
+
+        /* 2. Pindahkan efek Fade-In KHUSUS untuk Judul dan Subjudul saja */
+        .intro-title, .intro-subtitle {
+            opacity: 0;
+            animation: fadeInText 1s ease forwards;
+            animation-delay: 2.5s; /* Tetap menunggu 2.5 detik sebelum muncul */
+        }
+
+        /* 2. Teks Loading bebas hambatan, langsung muncul dan kedap-kedip */
+        .loading-status {
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 13px;
+            color: #4e73df;
+            font-weight: 600;
+            margin-top: 12px; /* Jarak ekstra agar terpisah dari subtitle */
+            animation: pulseText 1.5s infinite; 
+        }
+
+        .intro-title {
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            font-size: 24px; 
+            color: #1a1a1a;
+            margin-bottom: 2px; /* Perkecil jarak bawah judul */
+            line-height: 1.2;
+            opacity: 0;
+            animation: fadeInText 1s ease forwards;
+            animation-delay: 2.5s;
+        }
+
+        .intro-subtitle {
+            font-family: 'Instrument Sans', sans-serif;
+            font-weight: 400;
+            font-size: 14px; 
+            color: #666;
+            line-height: 1.2;
+        }
+
+        @keyframes fadeInText {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="splash-container">
+        <canvas id="introCanvas"></canvas>
+        
+        <div class="intro-text-container">
+            <div class="intro-title">JTN Multimedia Hub</div>
+            <div class="intro-subtitle">Portal pelayanan Seksi Multimedia HKBP Jatinegara</div>
+            <div class="loading-status" id="loadingText">Mempersiapkan aplikasi...</div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', function() {
+            const canvas = document.getElementById('introCanvas');
+            const ctx = canvas.getContext('2d', { alpha: true });
+            const video = document.createElement('video');
+            
+            video.src = "./assets/vid/hub.webm"; 
+            video.muted = true;
+            
+            let animationId;
+            let isVideoDone = false; // Status 1
+            let isAppReady = false;  // Status 2
+
+            // 1. Terima text status dari main.js
+            if (window.electronAPI && window.electronAPI.onLoadingStatus) {
+                window.electronAPI.onLoadingStatus((status) => {
+                    document.getElementById('loadingText').innerText = status;
+                });
+            }
+
+            // 2. Terima sinyal bahwa background loading sudah 100% selesai
+            if (window.electronAPI && window.electronAPI.onAppReady) {
+                window.electronAPI.onAppReady(() => {
+                    isAppReady = true;
+                    checkAndFinish(); // Cek apakah boleh ditutup
+                });
+            }
+
+            // Fungsi Penentu: Fade-out HANYA JIKA Video kelar DAN Halaman udah kelar
+            function checkAndFinish() {
+                if (isVideoDone && isAppReady) {
+                    document.body.classList.add('fade-out');
+                    setTimeout(() => {
+                        if(window.electronAPI) window.electronAPI.splashDone();
+                    }, 400); 
+                }
+            }
+
+            // Logika render video
+            function drawFrame() {
+                if (video.paused || video.ended) return;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                animationId = requestAnimationFrame(drawFrame);
+            }
+
+            video.addEventListener('loadedmetadata', function() {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                video.play();
+                drawFrame();
+            });
+
+            // Saat video selesai
+            video.onended = function() {
+                cancelAnimationFrame(animationId);
+                setTimeout(() => {
+                    isVideoDone = true;
+                    
+                    // Jika internet lambat, dan video udah beres duluan
+                    if (!isAppReady) {
+                        document.getElementById('loadingText').innerText = "Menunggu respon server...";
+                    }
+                    
+                    checkAndFinish();
+                }, 200); 
+            };
+        });
+    </script>
+</body>
+</html>

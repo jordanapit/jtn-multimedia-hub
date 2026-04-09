@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PDF Reader - JTN Multimedia Hub</title>
+    
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #323639; font-family: 'Segoe UI', sans-serif; }
+        .pdf-header { height: 48px; background-color: #323639; display: flex; align-items: center; justify-content: space-between; -webkit-app-region: drag; }
+
+        /* LOOKS TAJAM (Tanpa bayangan sama sekali) */
+        .btn-back { 
+            width: 48px; height: 48px; background-color: transparent; border: none; 
+            color: #ffffff; display: flex; align-items: center; justify-content: center; 
+            cursor: default; -webkit-app-region: no-drag; flex-shrink: 0;
+            transition: background-color 0.2s ease, color 0.1s; 
+        }
+        .btn-back:hover { background-color: rgba(255, 255, 255, 0.1); }
+        
+        /* 3. PRESSED STATE (Warna berubah saat ditekan) */
+        .btn-back:active { background-color: rgba(255, 255, 255, 0.25); color: #aaaaaa; }
+
+        /* 4. SVG ULTRA TAJAM */
+        .btn-back svg { 
+            width: 16px; height: 16px; 
+            stroke-width: 1.5px; /* Sedikit lebih tebal agar tidak berbayang di layar HD */
+            shape-rendering: crispEdges; /* Memaksa render piksel tajam */
+        }
+
+        .pdf-title { font-size: 12px; margin-left: 10px; flex-grow: 1; font-weight: 400; color: #ffffff; transition: color 0.2s; }
+
+        /* STATE INACTIVE (Meredup serempak) */
+        body.inactive .btn-back { color: #9eaab7 !important; }
+        body.inactive .pdf-title { color: #9eaab7 !important; opacity: 0.6; }
+
+        .win-controls-spacer { width: 140px; height: 48px; -webkit-app-region: no-drag; }
+        iframe { width: 100%; height: calc(100vh - 48px); border: none; display: block; }
+    </style>
+</head>
+<body class="active">
+    <div class="pdf-header">
+        <button class="btn-back" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M19 12H5M12 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+        <div class="pdf-title">PDF Reader - JTN Multimedia Hub</div>
+        <div class="win-controls-spacer"></div>
+    </div>
+
+    <iframe id="pdf-frame"></iframe>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileUrl = urlParams.get('file');
+
+        if (fileUrl) {
+            // Decode dan masukkan langsung ke iframe
+            document.getElementById('pdf-frame').src = decodeURIComponent(fileUrl) + "#toolbar=1";
+        }
+
+        if (window.electronAPI && window.electronAPI.onWindowFocus) {
+            window.electronAPI.onWindowFocus((isFocused) => {
+                document.body.className = isFocused ? 'active' : 'inactive';
+            });
+        }
+
+        function goBack() {
+            window.history.back(); // Otomatis kembali ke dashboard laporantransport.php
+        }
+    </script>
+</body>
+</html>

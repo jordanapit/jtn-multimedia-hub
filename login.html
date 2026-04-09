@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login - JTN Multimedia Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@700&family=Instrument+Sans:wght@400&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-app: #ffffff; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; cursor: default !important; -webkit-tap-highlight-color: transparent; }
+        input, textarea { -webkit-user-select: text !important; user-select: text !important; cursor: text !important; }
+
+        body { font-family: 'Inter', sans-serif; background: transparent !important; background-image: none !important; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 60px; overflow: hidden; position: relative; }
+        body.electron-app { padding-top: 0; }
+
+        .electron-drag-area { display: none; }
+
+        /* Matikan drag sementara saat menu terbuka agar klik bisa ditangkap DOM */
+        body.menu-open .electron-drag-area {
+            -webkit-app-region: no-drag !important;
+        }
+        body.electron-app .electron-drag-area { display: block; position: fixed; top: 0; left: 50px; width: calc(100% - 50px); height: 35px; z-index: 100000; -webkit-app-region: drag; }
+        body.electron-app, body.electron-app input, body.electron-app button, body.electron-app a, body.electron-app .login-container { -webkit-app-region: no-drag; }
+
+        #aurora-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: #ffffff; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 1.5s ease-in-out; }
+        #aurora-bg.show-aurora { opacity: 1; }
+        #aurora-bg.fade-out-aurora { opacity: 0 !important; transition: opacity 0.8s ease; }
+        
+        .stream { position: absolute; width: 200vw; height: 200vh; top: -50%; left: 60%; border-radius: 40% 60% 70% 30%; filter: blur(80px); opacity: 0.7; animation: spinFlow linear infinite; mix-blend-mode: multiply; }
+        .stream-1 { background: linear-gradient(45deg, #3b82f6, #06b6d4); animation-duration: 25s; }
+        .stream-2 { background: linear-gradient(135deg, #8b5cf6, #d946ef); animation-duration: 30s; animation-direction: reverse; left: -30%; top: -30%; opacity: 0.5; }
+        .stream-3 { background: linear-gradient(90deg, #22d3ee, #a3e635); animation-duration: 28s; opacity: 0.4; top: -60%; left: -20%; }
+        @keyframes spinFlow { 100% { transform: rotate(360deg); } }
+
+        .login-container { display: flex; max-width: 1200px; width: 100%; gap: 0; background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(30px) saturate(150%); -webkit-backdrop-filter: blur(30px) saturate(150%); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 24px; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1); overflow: hidden; opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; position: relative; z-index: 1; }
+        .login-container.fade-out { opacity: 0 !important; transform: scale(0.98); transition: opacity 0.8s ease, transform 0.8s ease; pointer-events: none; }
+        
+        #intro-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.8s ease; }
+        #introCanvas { width: 100%; max-width: 350px; height: auto; pointer-events: none; display: block; margin-bottom: 20px; }
+
+        .intro-text-container { text-align: center; position: absolute; bottom: 50px; opacity: 0; animation: fadeInText 1s ease forwards; animation-delay: 1s; pointer-events: none; }
+        .intro-title { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 24px; color: #1a1a1a; margin-bottom: 5px; line-height: 1.2; }
+        .intro-subtitle { font-family: 'Instrument Sans', sans-serif; font-weight: 400; font-size: 14px; color: #666; line-height: 1.2; }
+        @keyframes fadeInText { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .left-section { flex: 0 0 50%; display: flex; align-items: center; justify-content: center; position: relative; min-height: 75vh; }
+        .left-section img { width: auto; max-width: 85%; max-height: 60vh; height: auto; object-fit: contain; display: block; filter: drop-shadow(0 20px 40px rgba(102, 126, 234, 0.25)); }
+
+        .right-section { flex: 1; padding: 60px 50px; display: flex; flex-direction: column; justify-content: center; background: transparent; border: none; box-shadow: none; }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 14px; font-weight: 600; color: #333; margin-bottom: 8px; }
+        .input-wrapper { position: relative; }
+        .form-control { width: 100%; padding: 14px 18px; border: 2px solid rgba(0, 0, 0, 0.08); border-radius: 12px; font-size: 14px; transition: all 0.3s ease; font-family: 'Inter', sans-serif; background: rgba(255, 255, 255, 0.6); }
+        .form-control:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15); background: #fff; }
+
+        .password-toggle { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #999; transition: color 0.3s ease; }
+        .password-toggle:hover { color: #667eea; }
+
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin: 20px 0; }
+        .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; accent-color: #667eea; cursor: default !important; }
+        .checkbox-group label { font-size: 14px; color: #666; margin: 0; cursor: default !important; }
+
+        .login-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3); }
+        .login-btn.loading { pointer-events: none; }
+        .login-btn.loading span { opacity: 0; }
+        .login-btn.loading::after { content: ''; position: absolute; width: 20px; height: 20px; border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+        .admin-contact { text-align: center; margin-top: 15px; margin-bottom: -15px; font-size: 13px; color: #666; }
+        .admin-contact a { color: #667eea; font-weight: 500; text-decoration: none; }
+        .admin-contact a:hover { text-decoration: underline; }
+
+        .footer-links { text-align: center; margin-top: 25px; font-size: 13px; color: #666; display: flex; flex-direction: column; gap: 4px; }
+        .copyright-text { font-size: 12px; color: #888; margin-top: 0; }
+
+        @media (max-width: 1024px) { .login-container { justify-content: center; max-width: 500px; gap: 0; } .left-section { display: none; } .right-section { flex: 1; width: 100%; padding: 50px 40px; } }
+        @media (max-width: 768px) { body { padding: 20px !important; } .login-container { width: 100%; max-width: 450px; margin: 0 auto; } .right-section { padding: 35px 25px; } .right-section h1 { font-size: 24px; text-align: left; } .login-btn { padding: 12px; } }
+        
+        .alert-box { background-color: rgba(254, 242, 242, 0.9); border: 1px solid #fee2e2; color: #991b1b; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; font-size: 14px; display: flex; align-items: center; gap: 10px; overflow: hidden; max-height: 100px; opacity: 1; transition: all 0.5s ease-out; }
+
+        /* MENU 3 TITIK CLASSIC WINDOWS STYLE */
+        .electron-top-left-menu { display: none; }
+        body.electron-app .electron-top-left-menu { display: flex !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 48px !important; height: 35px !important; align-items: center !important; justify-content: center !important; z-index: 999999 !important; -webkit-app-region: no-drag !important; opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0.5s ease; }
+        body.electron-app .electron-top-left-menu.show-menu { opacity: 1; visibility: visible; }
+        .menu-dots-btn { width: 100% !important; height: 100% !important; background: transparent !important; border: none !important; border-radius: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; transition: background 0.15s ease !important; color: #1a1a1a !important; }
+        .menu-dots-btn:hover { background: rgba(0,0,0,0.05) !important; }
+        body.dark-mode .menu-dots-btn { color: #ffffff !important; }
+        body.dark-mode .menu-dots-btn:hover { background: rgba(255,255,255,0.1) !important; }
+        
+        /* CLASSIC CONTEXT MENU */
+        .context-menu-popup { 
+            position: absolute !important; 
+            top: 35px !important; 
+            left: 0 !important; 
+            background: #ffffff !important; 
+            border: 1px solid #cccccc !important; 
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2) !important; 
+            padding: 2px !important; 
+            display: none; 
+            min-width: 140px !important; 
+            -webkit-app-region: no-drag !important; 
+            border-radius: 2px !important; /* Classic tak ada rounded besar */
+        }
+        .context-menu-popup.show { display: block !important; }
+        
+        .context-menu-item { 
+            padding: 6px 10px !important; /* Rapat klasik */
+            font-size: 12px !important; 
+            font-weight: 400 !important; 
+            color: #000000 !important; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important; 
+            border-radius: 0 !important; 
+            display: flex !important; 
+            align-items: center !important; 
+            gap: 8px !important; 
+            transition: none !important; /* Classic gada fade hover */
+        }
+        .context-menu-item svg { width: 14px; height: 14px; color: #555555; }
+        .context-menu-item:hover { 
+            background: #0078D4 !important; /* Classic Windows Blue Highlight */
+            color: #ffffff !important; 
+        }
+        .context-menu-item:hover svg { color: #ffffff; }
+
+        /* Separator / Pemisah Garis */
+        .context-menu-separator {
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 3px 2px;
+        }
+
+        body.dark-mode .context-menu-popup { background: #2b2b2b !important; border-color: #444444 !important; box-shadow: 2px 2px 5px rgba(0,0,0,0.5) !important; }
+        body.dark-mode .context-menu-item { color: #ffffff !important; }
+        body.dark-mode .context-menu-item svg { color: #aaaaaa; }
+        body.dark-mode .context-menu-item:hover { background: #005A9E !important; color: #ffffff !important; }
+        body.dark-mode .context-menu-item:hover svg { color: #ffffff; }
+        body.dark-mode .context-menu-separator { background-color: #555555; }
+
+        /* MODAL SETTINGS */
+        #settingsModalStand { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7) !important; z-index: 100005; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out; }
+        #settingsModalStand.show { opacity: 1; visibility: visible; }
+        .settings-content { background: #fff; width: 100%; max-width: 450px; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; }
+        #settingsModalStand.show .settings-content { transform: scale(1); }
+        .settings-header { padding: 30px 30px 10px 30px; border-bottom: none; background: #fff; display: flex; justify-content: flex-start; text-align: left; }
+        .settings-header h3 { margin: 0; font-size: 20px; font-weight: 700; color: #1a1a1a; font-family: 'Inter', sans-serif; }
+        .settings-body { padding: 10px 30px 30px 30px; color: #666; font-size: 15px; line-height: 1.6; text-align: left; } 
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 8px 0; }
+        .setting-text-main { font-weight: 600; font-size: 15px; color: #5a5c69; font-family: 'Inter', sans-serif; }
+        .setting-text-sub { font-size: 12.8px; color: #858796; margin-top: 4px; font-family: 'Inter', sans-serif; }
+        #themeSelectStand { display: block; width: 140px; height: calc(1.5em + 0.5rem + 2px); padding: 0.25rem 0.5rem; font-size: .875rem; line-height: 1.5; color: #6e707e; background-color: #fff; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 500; outline: none; font-family: 'Inter', sans-serif; }
+        .settings-divider { border-top: 1px solid #e3e6f0; margin: 10px 0; border-bottom: none; border-left: none; border-right: none; }
+        .settings-footer { border-top: none; padding: 0 30px 30px 30px; background: #fff; display: flex; justify-content: flex-end; gap: 10px; width: 100%; }
+        .btn-tutup-exact { display: inline-block; background-color: #858796; border: 1px solid #858796; color: #fff !important; border-radius: 8px; font-weight: 600; padding: 0.375rem 1.5rem; transition: all .15s ease-in-out; font-size: 1rem; text-align: center; flex: 1; }
+        .btn-tutup-exact:hover { background-color: #717384; border-color: #6b6d7d; }
+
+        .electron-only-tabs { display: none !important; }
+        .web-only-header { display: block; }
+        .web-only-header h1 { font-size: 32px; font-weight: 700; color: #1a1a1a; margin-bottom: 10px; }
+        .web-only-header .subtitle { font-size: 14px; color: #666; margin-bottom: 30px; }
+
+        #tab-lainnya { display: none !important; }
+        #tab-login { display: block !important; }
+
+        body.electron-app .web-only-header { display: none !important; }
+        body.electron-app .electron-only-tabs { display: flex !important; background: rgba(0, 0, 0, 0.05); border-radius: 12px; padding: 5px; margin-bottom: 25px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        
+        .et-tab { flex: 1; border: none; background: transparent; padding: 12px; border-radius: 8px; font-weight: 600; color: #64748b; transition: all 0.2s ease; font-size: 0.95rem; }
+        .et-tab:hover { color: #4e73df; }
+        .et-tab.active { background: #ffffff; color: #4e73df; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+        body.electron-app .tab-wrapper { position: relative; width: 100%; display: block; transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        body.electron-app #tab-login, body.electron-app #tab-lainnya { display: block !important; }
+        
+        .et-content { position: absolute; top: 0; left: 0; width: 100%; opacity: 0; visibility: hidden; transform: translateY(15px) scale(0.98); transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); pointer-events: none; }
+        .et-content.active { opacity: 1; visibility: visible; transform: translateY(0) scale(1); pointer-events: auto; z-index: 2; transition-delay: 0.1s; }
+
+        .big-btn-container { display: flex; flex-direction: column; gap: 15px; }
+        .big-btn { display: flex; align-items: center; gap: 15px; padding: 20px; background: rgba(255,255,255,0.7); border: 1px solid rgba(0,0,0,0.08); border-radius: 16px; text-decoration: none !important; color: #333; transition: all 0.2s; -webkit-app-region: no-drag; }
+        .big-btn:hover { background: #ffffff; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); border-color: #4e73df; }
+        .bb-icon { width: 40px; display: flex; align-items: center; justify-content: center; }
+        .bb-icon svg { color: #4e73df; }
+        .bb-text { flex: 1; text-align: left; }
+        .bb-title { display: block; font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 3px; }
+        .bb-desc { display: block; font-size: 0.85rem; color: #64748b; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .page-transition-spinner { width: 45px; height: 45px; border: 4px solid rgba(102, 126, 234, 0.2); border-top-color: #667eea; border-radius: 50%; animation: spinNormal 0.8s linear infinite; }
+        @keyframes spinNormal { to { transform: rotate(360deg); } }
+        
+        /* DARK MODE SETTINGS */
+        body.dark-mode #loadingOverlay { background: rgba(30, 33, 40, 0.7) !important; }
+        body.dark-mode .page-transition-spinner { border-color: rgba(139, 176, 255, 0.2); border-top-color: #8bb0ff; }
+        body.dark-mode .settings-content { background: #21242b; border: 1px solid rgba(255,255,255,0.1); }
+        body.dark-mode .settings-header { background: transparent; }
+        body.dark-mode .settings-header h3 { color: #fff; }
+        body.dark-mode .setting-text-main { color: #e2e8f0; }
+        body.dark-mode .setting-text-sub { color: #adb5bd; }
+        body.dark-mode .settings-divider { border-color: rgba(255,255,255,0.1); }
+        body.dark-mode .settings-footer { background: transparent; }
+        body.dark-mode #themeSelectStand { background-color: #2d313a; border-color: rgba(255, 255, 255, 0.15); color: #ffffff; }
+        body.dark-mode .btn-tutup-exact { background-color: #3b404d; border-color: #3b404d; }
+        body.dark-mode .btn-tutup-exact:hover { background: #4a505e; border-color: #4a505e; }
+
+        .custom-switch { position: relative; display: inline-block; width: 44px; height: 24px; margin: 0; }
+        .custom-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #10b981; }
+        input:checked + .slider:before { transform: translateX(20px); }
+    </style>
+</head>
+
+<body>
+    <div id="menuBackdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999998; -webkit-app-region: no-drag !important; cursor: default;" onclick="closeAppMenu()"></div>
+    <div class="electron-top-left-menu">
+        <button class="menu-dots-btn" id="btnAppMenu" onclick="toggleAppMenu(event)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="5" cy="12" r="1.5"></circle>
+                <circle cx="12" cy="12" r="1.5"></circle>
+                <circle cx="19" cy="12" r="1.5"></circle>
+            </svg>
+        </button>
+        <div class="context-menu-popup" id="appContextMenu">
+            <div class="context-menu-item" id="openSettingsBtn" onclick="openSettingsModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                Pengaturan
+            </div>
+            <div class="context-menu-separator"></div>
+            <div class="context-menu-item" id="openAboutBtn" onclick="openAboutModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                Tentang
+            </div>
+        </div>
+    </div>
+    
+    <div class="electron-drag-area"></div>
+
+    <div id="aurora-bg">
+        <div class="stream stream-1"></div>
+        <div class="stream stream-2"></div>
+        <div class="stream stream-3"></div>
+    </div>
+
+    <div id="intro-overlay">
+        <canvas id="introCanvas"></canvas>
+        <div class="intro-text-container">
+            <div id="splashSpinner" class="page-transition-spinner" style="display: none; margin: 0 auto 15px auto; opacity: 0; transition: opacity 0.5s ease;"></div>
+            <div class="intro-title">JTN Multimedia Hub</div>
+            <div class="intro-subtitle">Portal pelayanan Seksi Multimedia HKBP Jatinegara</div>
+        </div>
+    </div>
+
+    <div class="login-container" style="opacity: 0;">
+        <div class="left-section">
+            <img src="./assets/img/hub.webp" alt="Multimedia Hub" draggable="false" onerror="this.src='https://absen.hkbpjtn.web.id/multimedia/assets/img/hub.webp'">
+        </div>
+
+        <div class="right-section" id="loginFormContainer">
+            <div class="web-only-header">
+                <h1>Login Petugas</h1>
+                <p class="subtitle">Silakan masuk log untuk masuk ke Multimedia Hub.</p>
+            </div>
+
+            <div class="electron-only-tabs">
+                <button type="button" class="et-tab active" data-target="tab-login">Login</button>
+                <button type="button" class="et-tab" data-target="tab-lainnya">Lainnya</button>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <div class="tab-wrapper">
+                <div id="tab-login" class="et-content active">
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="text" class="form-control" id="email" name="email" placeholder="Masukkan e-mail anda" autocomplete="off">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <div class="input-wrapper">
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Masukkan password anda">
+                                <svg class="password-toggle" onclick="togglePassword()" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path id="eyeIcon" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </div>
+                        </div>
+
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="remember" name="remember" value="true">
+                            <label for="remember">Ingat saya</label>
+                        </div>
+
+                        <button type="submit" class="login-btn" id="loginBtn">
+                            <span id="btnText">Masuk</span>
+                        </button>
+                    </form>
+                    
+                    <div class="admin-contact">
+                        Belum punya akun? Hubungi <a href="https://wa.me/6285158771207" target="_blank">admin</a>.
+                    </div>
+                </div>
+
+                <div id="tab-lainnya" class="et-content">
+                    <div class="big-btn-container">
+                        <button type="button" class="big-btn" onclick="document.getElementById('downloadModal').classList.add('show')" style="width: 100%; text-align: left; font-family: inherit;">
+                            <div class="bb-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            </div>
+                            <div class="bb-text">
+                                <span class="bb-title">Unduh Bahan Pelayanan</span>
+                                <span class="bb-desc">Akses file slide dan overlay langsung</span>
+                            </div>
+                        </button>
+                        
+                        <a href="public_pustaka.html" class="big-btn btn-app-menu">
+                            <div class="bb-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                            </div>
+                            <div class="bb-text">
+                                <span class="bb-title">Alkitab & Kidung</span>
+                                <span class="bb-desc">Buka penampil ayat dan lirik lagu</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-links">
+                <div class="copyright-text">© 2026 Seksi Multimedia HKBP Jatinegara</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(5px); z-index: 100000; opacity: 0; transition: opacity 0.3s ease; align-items: center; justify-content: center; flex-direction: column;">
+        <div class="page-transition-spinner"></div>
+    </div>
+
+    <div id="logoutOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #CFE4FF 0%, #F6F5FF 100%); z-index: 9999; opacity: 0; transition: opacity 0.5s ease; align-items: center; justify-content: center;">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div id="successCircle" style="width: 120px; height: 120px; border-radius: 50%; background: #10b981; display: flex; align-items: center; justify-content: center; transform: scale(0); transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" id="checkmark" style="stroke-dasharray: 30; stroke-dashoffset: 30;"></polyline></svg>
+            </div>
+            <p id="logoutText" style="margin-top: 30px; font-size: 28px; font-weight: 600; color: #1a1a1a; opacity: 0; transition: opacity 0.5s ease; margin-bottom: 8px;">Berhasil keluar akun!</p>
+            <p id="logoutSubtext" style="font-size: 14px; font-weight: 400; color: #666; opacity: 0; transition: opacity 0.5s ease; margin: 0;">Terima kasih atas pelayanan anda.</p>
+        </div>
+    </div>
+
+    <script>
+        function updateTabHeight() {
+            const wrapper = document.querySelector('.tab-wrapper');
+            const activeContent = document.querySelector('.et-content.active');
+            if (wrapper && activeContent) {
+                wrapper.style.height = activeContent.offsetHeight + 'px';
+            }
+        }
+
+        async function applyThemeLocally(theme) {
+            let isDark = false;
+            if (theme === 'dark') {
+                isDark = true;
+            } else if (theme === 'light') {
+                isDark = false;
+            } else {
+                if (window.electronAPI && window.electronAPI.getOSTheme) {
+                    try { isDark = await window.electronAPI.getOSTheme() === 'dark'; } 
+                    catch(e) { isDark = window.matchMedia('(prefers-color-scheme: dark)').matches; }
+                } else {
+                    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                }
+            }
+            
+            if (isDark) document.body.classList.add('dark-mode');
+            else document.body.classList.remove('dark-mode');
+            
+            const themeSelectStand = document.getElementById('themeSelectStand');
+            if (themeSelectStand) themeSelectStand.value = theme;
+            
+            if (window.electronAPI && window.electronAPI.updateWCO) {
+                window.electronAPI.updateWCO({ 
+                    color: 'rgba(0, 0, 0, 0)', 
+                    symbolColor: isDark ? '#ffffff' : '#1a1a1a', 
+                    height: 35 
+                });
+            }
+        }
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            const currentTheme = localStorage.getItem('appTheme') || 'system';
+            if (currentTheme === 'system') { applyThemeLocally('system'); }
+        });
+
+        document.addEventListener("DOMContentLoaded", async function() {
+            if (window.electronAPI) {
+                let savedTheme = 'system';
+                if (window.electronAPI.getAppTheme) {
+                    savedTheme = await window.electronAPI.getAppTheme();
+                } else {
+                    savedTheme = localStorage.getItem('appTheme') || 'system';
+                }
+                applyThemeLocally(savedTheme);
+
+                const themeSelectStand = document.getElementById('themeSelectStand');
+                if (themeSelectStand) {
+                    themeSelectStand.addEventListener('change', e => {
+                        let newTheme = e.target.value;
+                        if (window.electronAPI.setAppTheme) window.electronAPI.setAppTheme(newTheme);
+                        localStorage.setItem('appTheme', newTheme);
+                        applyThemeLocally(newTheme);
+                    });
+                }
+                
+                if (window.electronAPI.onSyncThemeRealtime) {
+                    window.electronAPI.onSyncThemeRealtime((theme) => { applyThemeLocally(theme); });
+                }
+            }
+        });
+
+        async function handleLoginSubmit(e) {
+            e.preventDefault(); 
+            const form = this;
+            const btn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('btnText');
+            
+            btn.classList.add('loading');
+            btnText.style.opacity = '0';
+            
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('https://absen.hkbpjtn.web.id/multimedia/auth/login_api', { 
+                    method: 'POST', body: formData 
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const container = document.querySelector('.login-container');
+                    const auroraBg = document.getElementById('aurora-bg');
+                    
+                    container.classList.add('fade-out');
+                    if (auroraBg) auroraBg.classList.add('fade-out-aurora'); 
+                    
+                    const topMenu = document.querySelector('.electron-top-left-menu');
+                    if (topMenu) topMenu.classList.remove('show-menu');
+                    
+                    setTimeout(() => {
+                        const realForm = document.createElement('form');
+                        realForm.method = 'POST';
+                        realForm.action = 'https://absen.hkbpjtn.web.id/multimedia/auth/index?from_local=1';
+                        
+                        const em = document.createElement('input');
+                        em.type = 'hidden'; em.name = 'email'; em.value = formData.get('email');
+                        
+                        const pw = document.createElement('input');
+                        pw.type = 'hidden'; pw.name = 'password'; pw.value = formData.get('password');
+                        
+                        const rm = document.createElement('input');
+                        rm.type = 'hidden'; rm.name = 'remember'; rm.value = formData.get('remember') || '';
+
+                        realForm.appendChild(em);
+                        realForm.appendChild(pw);
+                        realForm.appendChild(rm);
+                        document.body.appendChild(realForm);
+                        
+                        realForm.submit(); 
+                    }, 800);
+                    
+                } else {
+                    showError(data.message);
+                    btn.classList.remove('loading');
+                    btnText.style.opacity = '1';
+                }
+            } catch (error) {
+                showError('Koneksi ke server terputus. Pastikan Anda terhubung ke internet.');
+                btn.classList.remove('loading');
+                btnText.style.opacity = '1';
+            }
+        }
+
+        function showError(msg) {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = `
+                <div class="alert-box">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <span>${msg}</span>
+                </div>
+            `;
+            const errorBox = container.querySelector('.alert-box');
+            
+            const loginContainer = document.querySelector('.login-container');
+            loginContainer.style.transform = 'translateX(10px)';
+            setTimeout(() => loginContainer.style.transform = 'translateX(-10px)', 100);
+            setTimeout(() => loginContainer.style.transform = 'translateX(0)', 200);
+
+            setTimeout(() => {
+                if(errorBox) {
+                    errorBox.style.opacity = '0';
+                    setTimeout(() => errorBox.remove(), 500); 
+                }
+            }, 3000);
+        }
+
+        function initializeScripts() {
+            window.togglePassword = function() {
+                const passwordInput = document.getElementById('password');
+                const eyeIcon = document.getElementById('eyeIcon');
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    eyeIcon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+                } else {
+                    passwordInput.type = 'password';
+                    eyeIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
+                }
+            };
+
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) { loginForm.addEventListener('submit', handleLoginSubmit); }
+
+            const inputs = document.querySelectorAll('.form-control');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.parentElement.style.transform = 'scale(1.01)';
+                    this.parentElement.style.transition = 'transform 0.2s ease';
+                });
+                input.addEventListener('blur', function() {
+                    this.parentElement.style.transform = 'scale(1)';
+                });
+            });
+
+            const tabs = document.querySelectorAll('.et-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    if (tab.classList.contains('active')) return;
+                    
+                    document.querySelectorAll('.et-tab').forEach(t => t.classList.remove('active'));
+                    
+                    const currentActive = document.querySelector('.et-content.active');
+                    if (currentActive) { currentActive.classList.remove('active'); }
+                    
+                    tab.classList.add('active');
+                    const targetContent = document.getElementById(tab.dataset.target);
+                    if (targetContent) { targetContent.classList.add('active'); }
+                    
+                    updateTabHeight();
+                });
+            });
+
+            document.querySelectorAll('.btn-app-menu').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    if (this.href.startsWith('http')) return; 
+
+                    e.preventDefault();
+                    const targetUrl = this.href;
+                    const loginContainer = document.querySelector('.login-container');
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    
+                    if(loginContainer) {
+                        loginContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        loginContainer.style.opacity = '0';
+                        loginContainer.style.transform = 'scale(0.95)';
+                    }
+                    
+                    const topMenu = document.querySelector('.electron-top-left-menu');
+                    if (topMenu) topMenu.classList.remove('show-menu');
+
+                    if(loadingOverlay) {
+                        loadingOverlay.style.display = 'flex';
+                        void loadingOverlay.offsetWidth; 
+                        loadingOverlay.style.opacity = '1';
+                    }
+                    setTimeout(() => { window.location.href = targetUrl; }, 400);
+                });
+            });
+
+            setTimeout(updateTabHeight, 50);
+            window.addEventListener('resize', updateTabHeight);
+        }
+
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isLogout = urlParams.get('logout') === 'success';
+            const hasCookies = urlParams.get('has_cookies') === '1';
+            const skipSplash = urlParams.get('skip_splash') === '1';
+            const isElectron = document.body.classList.contains('electron-app') || window.electronAPI;
+            
+            const introOverlay = document.getElementById('intro-overlay');
+            const canvas = document.getElementById('introCanvas');
+            const loginContainer = document.querySelector('.login-container');
+            const auroraBg = document.getElementById('aurora-bg');
+
+            if (window.electronAPI) {
+                document.body.classList.add("electron-app");
+            }
+
+            function showLoginNormal() {
+                if(loginContainer) {
+                    loginContainer.style.display = 'flex';
+                    void loginContainer.offsetWidth; 
+                    loginContainer.style.opacity = '1';
+                    loginContainer.style.transform = 'translateY(0)';
+                    updateTabHeight(); 
+                }
+                if(auroraBg) auroraBg.classList.add('show-aurora');
+                
+                const topMenu = document.querySelector('.electron-top-left-menu');
+                if (topMenu) topMenu.classList.add('show-menu');
+            }
+
+            if (skipSplash && !isLogout) {
+                if(introOverlay) introOverlay.style.display = 'none';
+                setTimeout(() => { showLoginNormal(); }, 100);
+                initializeScripts();
+                return;
+            }
+
+            if (isLogout) {
+                if(loginContainer) { loginContainer.style.display = 'none'; loginContainer.style.opacity = '0'; }
+                if(introOverlay) introOverlay.style.display = 'none';
+                if(auroraBg) auroraBg.classList.add('show-aurora');
+                
+                const topMenu = document.querySelector('.electron-top-left-menu');
+                if (topMenu) topMenu.classList.remove('show-menu');
+                
+                setTimeout(() => { showLogoutSuccess(); }, 100);
+                initializeScripts();
+                return;
+            }
+
+            const hasSeenSplash = sessionStorage.getItem('jtn_splash_shown');
+            
+            if (isElectron && introOverlay && canvas && !hasSeenSplash) {
+                sessionStorage.setItem('jtn_splash_shown', 'true');
+                
+                const ctx = canvas.getContext('2d', { alpha: true });
+                const video = document.createElement('video');
+                
+                video.src = "./assets/vid/hub.webm";
+                video.onerror = () => { video.src = "https://absen.hkbpjtn.web.id/multimedia/assets/vid/hub.webm"; };
+                video.muted = true; video.playsInline = true;
+                
+                video.addEventListener('loadedmetadata', function() {
+                    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                    video.play().then(() => { drawFrame(); }).catch(e => { showLoginNormal(); });
+                });
+                
+                let animationId;
+                function drawFrame() {
+                    if (video.paused || video.ended) return;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    animationId = requestAnimationFrame(drawFrame);
+                }
+
+                video.onended = function() {
+                    cancelAnimationFrame(animationId); 
+
+                    if (hasCookies) {
+                        const splashSpin = document.getElementById('splashSpinner');
+                        if (splashSpin) {
+                            splashSpin.style.display = 'block';
+                            void splashSpin.offsetWidth; 
+                            splashSpin.style.opacity = '1';
+                        }
+                        window.location.href = 'https://absen.hkbpjtn.web.id/multimedia/auth/index?from_local=1';
+                        return;
+                    }
+
+                    showLoginNormal(); 
+                    if(introOverlay) introOverlay.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        if(introOverlay) introOverlay.remove(); 
+                        if(video) video.remove(); 
+                    }, 800); 
+                };
+            } else {
+                if(introOverlay) introOverlay.style.display = 'none';
+                
+                if (hasCookies) {
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    if(loadingOverlay) { loadingOverlay.style.display = 'flex'; loadingOverlay.style.opacity = '1'; }
+                    window.location.href = 'https://absen.hkbpjtn.web.id/multimedia/auth/index?from_local=1';
+                    return;
+                }
+
+                setTimeout(() => { showLoginNormal(); }, 150);
+            }
+            
+            initializeScripts();
+        });
+
+        function showLogoutSuccess() {
+            const overlay = document.getElementById('logoutOverlay');
+            const circle = document.getElementById('successCircle');
+            const text = document.getElementById('logoutText');
+            const subtext = document.getElementById('logoutSubtext');
+            const checkmark = document.getElementById('checkmark');
+            const loginContainer = document.querySelector('.login-container');
+            const topMenu = document.querySelector('.electron-top-left-menu');
+            
+            loginContainer.style.display = 'none';
+            
+            overlay.style.display = 'flex'; overlay.style.opacity = '0';
+            setTimeout(() => { overlay.style.opacity = '1'; }, 50);
+            setTimeout(() => { circle.style.transform = 'scale(1)'; }, 200);
+            setTimeout(() => { checkmark.style.transition = 'stroke-dashoffset 0.4s ease'; checkmark.style.strokeDashoffset = '0'; }, 400);
+            setTimeout(() => { text.style.opacity = '1'; }, 600);
+            setTimeout(() => { subtext.style.opacity = '1'; }, 800);
+            
+            setTimeout(() => {
+                overlay.style.opacity = '0'; circle.style.transform = 'scale(0.9)';
+                text.style.opacity = '0'; subtext.style.opacity = '0';
+            }, 2000);
+            
+            setTimeout(() => {
+                overlay.style.display = 'none'; loginContainer.style.display = 'flex';
+                void loginContainer.offsetWidth; 
+                loginContainer.style.opacity = '1'; loginContainer.style.transform = 'translateY(0)';
+                
+                updateTabHeight();
+                
+                if (topMenu) topMenu.classList.add('show-menu');
+                
+                const url = new URL(window.location); url.searchParams.delete('logout'); url.searchParams.delete('skip_splash');
+                window.history.replaceState({}, '', url);
+            }, 2500);
+        }
+
+        function closeAppMenu() {
+            const menu = document.getElementById('appContextMenu');
+            if (menu) menu.classList.remove('show');
+            document.body.classList.remove('menu-open'); // Kembalikan fungsi drag
+        }
+
+        function toggleAppMenu(e) {
+            if(e) e.stopPropagation();
+            const menu = document.getElementById('appContextMenu');
+            if(menu) {
+                const isShowing = menu.classList.toggle('show');
+                if (isShowing) {
+                    document.body.classList.add('menu-open'); // Matikan drag
+                } else {
+                    document.body.classList.remove('menu-open'); // Nyalakan drag
+                }
+            }
+        }
+
+        function openSettingsModal() {
+            closeAppMenu();
+            if(window.electronAPI && window.electronAPI.openSettingsWindow) {
+                window.electronAPI.openSettingsWindow();
+            }
+        }
+
+        function openAboutModal() {
+            closeAppMenu();
+            if(window.electronAPI && window.electronAPI.openAboutWindow) {
+                window.electronAPI.openAboutWindow();
+            } else {
+                alert("Menu Tentang hanya dapat diakses melalui aplikasi Desktop JTN Multimedia Hub.");
+            }
+        }
+
+        // Tangkap klik di manapun untuk menutup menu
+        document.addEventListener('mousedown', function(e) {
+            const menu = document.getElementById('appContextMenu');
+            const btn = document.getElementById('btnAppMenu');
+            if (menu && menu.classList.contains('show')) {
+                if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                    closeAppMenu();
+                }
+            }
+        });
+    </script>
+
+    <script>
+        document.addEventListener('keydown', function(e) {
+            const isReload = (e.key.toLowerCase() === 'r' && (e.ctrlKey || e.metaKey)) || e.key === 'F5';
+            
+            if (isReload) {
+                const splash = document.getElementById('intro-overlay');
+                if (splash && window.getComputedStyle(splash).opacity !== '0' && window.getComputedStyle(splash).display !== 'none') {
+                    e.preventDefault(); 
+                }
+            }
+        });
+
+        function goToPage(url) {
+            const loginContainer = document.querySelector('.login-container');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            
+            document.getElementById('downloadModal').classList.remove('show');
+            
+            if(loginContainer) {
+                loginContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                loginContainer.style.opacity = '0';
+                loginContainer.style.transform = 'scale(0.95)';
+            }
+            
+            if(loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+                void loadingOverlay.offsetWidth; 
+                loadingOverlay.style.opacity = '1';
+            }
+            
+            setTimeout(() => { window.location.href = url; }, 400);
+        }
+    </script>
+    <style>
+        #downloadModal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.4) !important; z-index: 2147483647 !important; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.2s ease-in-out, visibility 0.2s; pointer-events: none; }
+        #downloadModal.show { opacity: 1; visibility: visible; pointer-events: auto !important; }
+        
+        .win11-dialog { width: 100%; max-width: 320px; border-radius: 8px; overflow: hidden; background: rgba(243, 243, 243, 0.85); backdrop-filter: blur(30px) saturate(150%); -webkit-backdrop-filter: blur(30px) saturate(150%); border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 10px 40px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; }
+        #downloadModal.show .win11-dialog { transform: scale(1); }
+
+        .win11-dialog-titlebar { height: 32px; display: flex; justify-content: space-between; align-items: center; padding-left: 12px; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; color: #1a1a1a; user-select: none; }
+        
+        .win11-dialog-close { width: 46px; height: 32px; background: transparent; border: none; color: #1a1a1a; display: flex; justify-content: center; align-items: center; transition: 0.1s; font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets', sans-serif; font-size: 10px; outline: none !important; }
+        .win11-dialog-close:hover { background-color: #E81123; color: white; }
+
+        .win11-dialog-body { padding: 10px 15px 20px 15px; display: flex; flex-direction: column; gap: 6px; }
+        .win11-cmd-btn { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.6); border: 1px solid rgba(0,0,0,0.05); padding: 10px; border-radius: 6px; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; font-weight: 500; color: #1a1a1a; transition: all 0.15s; outline: none !important; }
+        .win11-cmd-btn:hover { background: rgba(255,255,255,0.9); border-color: rgba(0,0,0,0.1); box-shadow: 0 2px 4px rgba(0,0,0,0.02); transform: translateY(-1px); }
+        .win11-cmd-btn:active { transform: scale(0.98); }
+
+        body.dark-mode .win11-dialog { background: rgba(32, 32, 32, 0.75); border-color: rgba(255, 255, 255, 0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        body.dark-mode .win11-dialog-titlebar { color: #ffffff; }
+        body.dark-mode .win11-dialog-close { color: #ffffff; }
+        body.dark-mode .win11-cmd-btn { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); color: #ffffff; }
+        body.dark-mode .win11-cmd-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.1); }
+    </style>
+    
+    <div id="downloadModal">
+        <div class="win11-dialog">
+            <div class="win11-dialog-titlebar">
+                <span>Unduh Bahan Pelayanan</span>
+                <button class="win11-dialog-close" onclick="document.getElementById('downloadModal').classList.remove('show')" title="Tutup">&#xE8BB;</button>
+            </div>
+            <div class="win11-dialog-body">
+                <button type="button" class="win11-cmd-btn" onclick="goToPage('slide.html')">Slide Ibadah</button>
+                <button type="button" class="win11-cmd-btn" onclick="goToPage('overlay.html')">Slide Overlay</button>
+                <button type="button" class="win11-cmd-btn" onclick="goToPage('elements.html')">Streaming Elements</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

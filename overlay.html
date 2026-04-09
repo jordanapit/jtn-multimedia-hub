@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slide Overlay - JTN Multimedia Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { 
+            --primary: #1e5690; 
+            --bg-app: transparent; 
+            --bg-content: #f3f3f3; 
+            --text-title: #1a1a1a; 
+            --text-sub: #555555; 
+            --table-bg: #ffffff; 
+            --row-bg: #e5e7eb; 
+            --row-hover: #d1d5db;
+            --nav-btn-color: #888888;
+            --content-shadow: -8px 0 20px rgba(0, 0, 0, 0.04);
+            --loader-bg: #ffffff; 
+        }
+
+        body.dark-mode { 
+            --bg-app: #121418; 
+            --bg-content: #32353b; 
+            --text-title: #ffffff; 
+            --text-sub: #cbd5e1; 
+            --table-bg: rgba(30, 33, 40, 0.5); 
+            --row-bg: rgba(33, 36, 43, 0.6); 
+            --row-hover: rgba(255, 255, 255, 0.1);
+            --nav-btn-color: #cbd5e1;
+            --content-shadow: -12px 0 30px rgba(0, 0, 0, 0.3); 
+            --loader-bg: #121418; 
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        html { background: transparent !important; height: 100%; overflow: hidden; }
+        body { background: var(--bg-app); height: 100vh; overflow: hidden; margin: 0; font-family: 'Sora', sans-serif; transition: background 0.3s ease; }
+        
+        .app-container { display: flex; width: 100%; height: 100%; background: transparent; }
+
+        .sidebar { width: 70px; background: transparent !important; display: flex; flex-direction: column; align-items: center; padding-top: 20px; z-index: 1; position: relative; -webkit-app-region: drag; }
+        .app-logo { width: 36px; height: 36px; margin-bottom: 30px; object-fit: contain; -webkit-app-region: no-drag; }
+        .nav-btn { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--nav-btn-color); font-size: 20px; margin-bottom: 8px; transition: all 0.2s; -webkit-app-region: no-drag; cursor: pointer; }
+        .nav-btn:hover { background: rgba(0,0,0,0.05); color: var(--primary); }
+        body.dark-mode .nav-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .nav-btn.bottom { margin-top: auto; margin-bottom: 20px; }
+        
+        .right-wrapper { flex: 1; display: flex; flex-direction: column; background: transparent; overflow: visible !important; position: relative; }
+        .title-bar { height: 40px; display: flex; align-items: center; background: transparent !important; -webkit-app-region: drag; z-index: 1; }
+        .app-title { 
+            font-size: 12px; 
+            color: var(--text-title); 
+            margin-left: 10px; 
+            font-weight: 400; 
+            opacity: 0.8; 
+            font-family: 'Segoe UI', system-ui, sans-serif; /* TAMBAHKAN BARIS INI */
+        }
+
+        .content-body { flex: 1; background: var(--bg-content); border-top-left-radius: 20px; overflow: hidden; display: flex; flex-direction: column; position: relative; z-index: 20; box-shadow: var(--content-shadow); transition: background 0.3s ease, box-shadow 0.3s ease; }
+
+        .scroll-area { flex: 1; padding: 30px 40px; overflow-y: auto; color: var(--text-title); }
+        h1 { font-size: 28px; font-weight: 700; margin-bottom: 25px; }
+
+        .table-container { border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); background: var(--table-bg); margin-bottom: 2rem; }
+        body.dark-mode .table-container { border-color: rgba(255,255,255,0.1); }
+        .file-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        .file-table thead tr { background: var(--primary); color: white; }
+        body.dark-mode .file-table thead tr { background: rgba(30, 86, 144, 0.85); }
+        .file-table th { padding: 15px; font-weight: 600; text-align: left; border: none; }
+        .file-table td { padding: 12px 15px; vertical-align: middle; color: var(--text-sub); border-top: 1px solid rgba(0,0,0,0.05); }
+        body.dark-mode .file-table td { border-top-color: rgba(255,255,255,0.05); }
+        .file-table tbody tr { background: var(--row-bg); transition: background 0.2s; }
+        .file-table tbody tr:hover { background: var(--row-hover); }
+        .text-center { text-align: center !important; }
+        .col-name { display: flex; align-items: center; gap: 12px; }
+        .file-icon { font-size: 18px; width: 24px; text-align: center; }
+        .file-name-text { font-weight: 600; color: var(--primary); }
+        body.dark-mode .file-name-text { color: #8bb0ff; }
+        .btn-download { color: var(--nav-btn-color); font-size: 18px; transition: 0.2s; -webkit-app-region: no-drag; cursor: pointer; }
+        .btn-download:hover { color: var(--primary); }
+
+        /* --- MODAL STYLES --- */
+        .jtn-modal { display: flex; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .jtn-modal.show { opacity: 1; pointer-events: all; }
+        .jtn-modal-content { background: var(--bg-content); padding: 40px; border-radius: 16px; width: 380px; text-align: center; position: relative; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 50px rgba(0,0,0,0.5); transform: scale(0.8); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .jtn-modal.show .jtn-modal-content { transform: scale(1); }
+        .jtn-close-modal { position: absolute; top: 15px; right: 20px; color: var(--text-sub); font-size: 20px; cursor: pointer; transition: color 0.2s; }
+        .jtn-close-modal:hover { color: var(--text-title); }
+        .jtn-spinner { width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        
+        /* SETTINGS MODAL SPECIFIC STYLES */
+        .setting-group { margin-bottom: 20px; text-align: left; }
+        .setting-group label { display: block; font-size: 13px; color: var(--text-sub); margin-bottom: 8px; font-weight: 600; }
+        .jtn-select { width: 100%; padding: 12px 15px; border-radius: 8px; background: var(--table-bg); color: var(--text-title); border: 1px solid rgba(0,0,0,0.1); font-family: 'Sora', sans-serif; outline: none; cursor: pointer; font-size: 14px; transition: border-color 0.2s; }
+        body.dark-mode .jtn-select { border: 1px solid rgba(255,255,255,0.1); }
+        .jtn-select:focus { border-color: var(--primary); }
+
+        #page-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--loader-bg); z-index: 10000; display: flex; justify-content: center; align-items: center; transition: 0.5s; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* CSS UNTUK LOGO MENGKILAP */
+        .logo-wrapper {
+            position: relative;
+            width: 36px; 
+            height: 36px; 
+            margin-bottom: 30px;
+            -webkit-app-region: no-drag;
+            cursor: pointer;
+            border-radius: 8px;
+            overflow: hidden; /* Penting agar kilapnya tidak bocor keluar kotak */
+        }
+        .logo-wrapper .app-logo {
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+            margin-bottom: 0; 
+        }
+        .logo-wrapper::after {
+            content: "";
+            position: absolute;
+            top: 0; 
+            left: -100%; /* Mulai dari luar kiri */
+            width: 50%; 
+            height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-25deg); /* Dimiringkan biar keren */
+        }
+        .logo-wrapper:hover::after {
+            animation: shine 0.6s ease forwards;
+        }
+        @keyframes shine {
+            100% { left: 200%; } /* Bergerak cepat ke kanan */
+        }
+
+        /* CSS UNTUK TOGGLE SWITCH */
+        .custom-switch { position: relative; display: inline-block; width: 44px; height: 24px; margin: 0; }
+        .custom-switch input { opacity: 0; width: 0; height: 0; }
+        .custom-switch .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.2); transition: .4s; border-radius: 24px; }
+        body.dark-mode .custom-switch .slider { background-color: rgba(255,255,255,0.2); }
+        .custom-switch .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        .custom-switch input:checked + .slider { background-color: #10b981; }
+        .custom-switch input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Kursor panah standar untuk semua link */
+        a, i, img, div, select, label, button, span, input {
+            cursor: default !important;
+        }
+
+        /* --- EFEK KLIK & CONTEXT MENU --- */
+        .file-table tbody tr { cursor: default; } /* Kursor panah biasa */
+        .file-table tbody tr.selected-row { background: var(--row-hover); outline: 1px solid var(--primary); }
+        
+        .custom-context-menu {
+            position: fixed; display: none; background: var(--table-bg); border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); border-radius: 8px; z-index: 10000; padding: 5px 0; min-width: 160px;
+        }
+        body.dark-mode .custom-context-menu { border-color: rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        
+        .context-item { padding: 8px 15px; cursor: default; font-size: 13px; color: var(--text-title); display: flex; align-items: center; gap: 10px; }
+        .context-item:hover { background: var(--row-bg); color: var(--primary); }
+        body.dark-mode .context-item:hover { color: #8bb0ff; }
+
+        /* --- TOAST NOTIFICATION MICA --- */
+        .jtn-toast {
+            visibility: hidden; min-width: 220px; text-align: center;
+            background-color: rgba(255, 255, 255, 0.6); /* Mica Light */
+            backdrop-filter: blur(12px) saturate(150%); -webkit-backdrop-filter: blur(12px) saturate(150%);
+            color: #1a1a1a; font-size: 13px; font-weight: 600;
+            border-radius: 50px; /* Bentuk Kapsul */
+            padding: 10px 20px; position: fixed; z-index: 10001;
+            left: 50%; bottom: 20px; transform: translateX(-50%);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.05);
+            opacity: 0; transition: opacity 0.3s ease, bottom 0.3s ease, visibility 0.3s;
+            cursor: default; pointer-events: none;
+        }
+        .jtn-toast.show { visibility: visible; opacity: 1; bottom: 40px; } /* Animasi naik sedikit saat muncul */
+        
+        body.dark-mode .jtn-toast {
+            background-color: rgba(30, 33, 40, 0.6); /* Mica Dark */
+            color: #ffffff; border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="page-loader"><div class="jtn-spinner"></div></div>
+
+    <div id="fileContextMenu" class="custom-context-menu">
+        <div class="context-item" id="ctxDownload"><i class="fas fa-download"></i> Unduh File</div>
+        <div class="context-item" id="ctxCopyLink"><i class="fas fa-link"></i> Salin Link</div>
+    </div>
+
+    <div id="confirmDownloadModal" class="jtn-modal">
+        <div class="jtn-modal-content" style="padding: 30px; width: 320px;">
+            <h3 style="color:var(--text-title); margin-bottom:15px; font-size: 18px;">Konfirmasi</h3>
+            <p style="color:var(--text-sub); font-size:14px; margin-bottom:25px; line-height:1.5;" id="confirmFileName">Apakah anda yakin ingin mengunduh file ini?</p>
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <button onclick="closeConfirmModal()" style="flex:1; padding:10px; border-radius:8px; border:none; background:var(--row-bg); color:var(--text-title); font-weight:600; cursor:pointer;">Batal</button>
+                <button id="btnConfirmDownload" style="flex:1; padding:10px; border-radius:8px; border:none; background:var(--primary); color:white; font-weight:600; cursor:pointer;">Unduh</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="jtnDownloadModal" class="jtn-modal">
+        <div class="jtn-modal-content">
+            <span class="jtn-close-modal" onclick="closeJtnModal()">&times;</span>
+            <div class="jtn-spinner"></div>
+            <h3 style="color:var(--text-title); margin-bottom:10px;">Memproses Unduhan...</h3>
+            <div style="display:flex; align-items:center; justify-content:center; gap:8px; color:var(--text-sub); font-size:13px;">
+                <i class="fab fa-google-drive" style="color: #34a853;"></i>
+                <span>Powered by Google Drive</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="logo-wrapper" onclick="openAbout()">
+                <img src="assets/picture/favicon.webp" class="app-logo">
+            </div>
+            <div class="nav-btn" onclick="goHome()"><i class="fa-solid fa-house"></i></div>
+            <div class="nav-btn" onclick="openWA()"><i class="fa-brands fa-whatsapp"></i></div>
+            <div class="nav-btn bottom" onclick="openSettings()"><i class="fa-solid fa-gear"></i></div>
+        </div>
+        <div class="right-wrapper">
+            <div class="title-bar"><div class="app-title">Bahan Pelayanan - JTN Multimedia Hub</div></div>
+            <div class="content-body">
+                <div class="scroll-area">
+                    <h1>Slide Overlay</h1>
+                    <div class="table-container">
+                        <table class="file-table">
+                            <thead><tr><th width="60%">Nama File</th><th width="25%">Jenis</th><th width="15%" class="text-center">Ukuran</th></tr></thead>
+                            <tbody id="tbody-overlay"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="jtnToast" class="jtn-toast">Link berhasil disalin!</div>
+
+    <script>
+        const apiUrl = 'https://absen.hkbpjtn.web.id/multimedia/api/get_overlay.php';
+
+        async function applyTheme(themeSetting) {
+            let isDark = false;
+            
+            if (themeSetting === 'dark') {
+                isDark = true;
+            } else if (themeSetting === 'light') {
+                isDark = false;
+            } else {
+                try {
+                    if (window.electronAPI && window.electronAPI.getOSTheme) {
+                        const osTheme = await window.electronAPI.getOSTheme();
+                        isDark = (osTheme === 'dark');
+                    }
+                } catch (e) { console.error("Gagal tanya OS:", e); }
+            }
+
+            document.body.classList.toggle('dark-mode', isDark);
+            if (window.electronAPI && window.electronAPI.updateWCO) {
+                window.electronAPI.updateWCO({ 
+                    color: 'rgba(0,0,0,0)', 
+                    symbolColor: isDark ? '#ffffff' : '#1a1a1a', 
+                    height: 35 
+                });
+            }
+        }
+
+        // --- BUKA GLOBAL SETTINGS ---
+        function openSettings() {
+            if (window.electronAPI && window.electronAPI.openSettingsWindow) {
+                window.electronAPI.openSettingsWindow();
+            }
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('show');
+        }
+
+        function changeTheme(val) {
+            if (window.electronAPI) {
+                window.electronAPI.setAppTheme(val);
+            }
+        }
+
+        function toggleStartup(isChecked) {
+            if (window.electronAPI && window.electronAPI.toggleStartup) {
+                window.electronAPI.toggleStartup(isChecked);
+            }
+        }
+        // -----------------------------
+
+        function showJtnModal() {
+            document.getElementById('jtnDownloadModal').classList.add('show');
+            window.addEventListener('focus', function onFocus() {
+                document.getElementById('jtnDownloadModal').classList.remove('show');
+                window.removeEventListener('focus', onFocus);
+            }, { once: true });
+        }
+        function closeJtnModal() { document.getElementById('jtnDownloadModal').classList.remove('show'); }
+
+        async function fetchOverlay() {
+            const tbody = document.getElementById('tbody-overlay');
+            try {
+                const res = await fetch(apiUrl);
+                const data = await res.json();
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center" style="padding:20px; color:var(--text-sub) !important;">Tidak ada file.</td></tr>';
+                } else {
+                    let html = '';
+                    data.forEach(f => {
+                        // GANTI BAGIAN html += INI:
+                        html += `<tr data-url="${f.downloadUrl}" data-name="${f.name}"><td><div class="col-name"><i class="fa-regular fa-file-powerpoint file-icon" style="color:#d04423"></i><span class="file-name-text">${f.name}</span></div></td><td>PowerPoint</td><td class="text-center">${size}</td></tr>`;
+                    });
+                    tbody.innerHTML = html;
+                }
+            } catch (e) { 
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">Gagal memuat.</td></tr>'; 
+            } finally { 
+                const loader = document.getElementById('page-loader'); 
+                if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display='none', 500); }
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            if (window.electronAPI) {
+                try {
+                    const savedTheme = await window.electronAPI.getAppTheme();
+                    await applyTheme(savedTheme);
+                    
+                    window.electronAPI.onSyncThemeRealtime(async (incomingTheme) => {
+                        const currentTheme = await window.electronAPI.getAppTheme();
+                        await applyTheme(currentTheme);
+                    });
+
+                } catch (e) { console.error("Theme init error:", e); }
+            }
+            fetchOverlay();
+        });
+
+        function goHome() { window.location.href = 'login.html'; }
+        async function openWA() { if (window.electronAPI) window.electronAPI.openExternal("whatsapp://"); }
+
+        async function openAbout() {
+            if (window.electronAPI && window.electronAPI.openAboutWindow) {
+                // Cek versi aplikasi (opsional, tapi disarankan sesuai request awal)
+                const currentVersion = await window.electronAPI.getAppVersion();
+                const requiredVersion = '1.2.260407';
+
+                if (currentVersion.localeCompare(requiredVersion, undefined, { numeric: true, sensitivity: 'base' }) >= 0) {
+                    window.electronAPI.openAboutWindow();
+                }
+            }
+        }
+
+        // ==========================================
+        // LOGIKA INTERAKSI FILE (KLIK, DBLCLICK, KLIK KANAN)
+        // ==========================================
+        let selectedFileUrl = '';
+        let selectedFileName = '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const scrollArea = document.querySelector('.scroll-area');
+
+            // 1. SINGLE CLICK: Sorot/Pilih File
+            scrollArea.addEventListener('click', (e) => {
+                const tr = e.target.closest('.file-table tbody tr');
+                if (tr) {
+                    document.querySelectorAll('.file-table tbody tr').forEach(el => el.classList.remove('selected-row'));
+                    tr.classList.add('selected-row');
+                    selectedFileUrl = tr.getAttribute('data-url');
+                    selectedFileName = tr.getAttribute('data-name');
+                } else {
+                    // Klik di luar tabel akan menghilangkan sorotan
+                    document.querySelectorAll('.file-table tbody tr').forEach(el => el.classList.remove('selected-row'));
+                }
+            });
+
+            // 2. DOUBLE CLICK: Muncul Modal Konfirmasi
+            scrollArea.addEventListener('dblclick', (e) => {
+                const tr = e.target.closest('.file-table tbody tr');
+                if (tr) {
+                    selectedFileUrl = tr.getAttribute('data-url');
+                    selectedFileName = tr.getAttribute('data-name');
+                    document.getElementById('confirmFileName').innerHTML = `Apakah anda yakin ingin mengunduh file <br><strong style="color:var(--primary)">${selectedFileName}</strong>?`;
+                    document.getElementById('confirmDownloadModal').classList.add('show');
+                }
+            });
+
+            // 3. RIGHT CLICK: Menu Konteks
+            scrollArea.addEventListener('contextmenu', (e) => {
+                const tr = e.target.closest('.file-table tbody tr');
+                if (tr) {
+                    e.preventDefault(); // Matikan klik kanan bawaan windows
+                    document.querySelectorAll('.file-table tbody tr').forEach(el => el.classList.remove('selected-row'));
+                    tr.classList.add('selected-row'); // Sorot otomatis baris yang di-klik kanan
+                    selectedFileUrl = tr.getAttribute('data-url');
+                    selectedFileName = tr.getAttribute('data-name');
+
+                    const ctxMenu = document.getElementById('fileContextMenu');
+                    ctxMenu.style.display = 'block';
+                    ctxMenu.style.left = e.clientX + 'px';
+                    ctxMenu.style.top = e.clientY + 'px';
+                }
+            });
+
+            // Menghilangkan menu klik kanan jika klik di tempat lain
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#fileContextMenu')) {
+                    document.getElementById('fileContextMenu').style.display = 'none';
+                }
+            });
+
+            // Aksi Tombol di Klik Kanan
+            document.getElementById('ctxDownload').addEventListener('click', () => {
+                document.getElementById('fileContextMenu').style.display = 'none';
+                if (selectedFileUrl) {
+                    // Memicu modal yang sama dengan double-click
+                    document.getElementById('confirmFileName').innerHTML = `Apakah anda yakin ingin mengunduh file <br><strong style="color:var(--primary)">${selectedFileName}</strong>?`;
+                    document.getElementById('confirmDownloadModal').classList.add('show');
+                }
+            });
+
+            document.getElementById('ctxCopyLink').addEventListener('click', () => {
+                document.getElementById('fileContextMenu').style.display = 'none';
+                if(selectedFileUrl) {
+                    navigator.clipboard.writeText(selectedFileUrl).then(() => {
+                        showToast('Tautan berhasil disalin');
+                    });
+                }
+            });
+
+            // Aksi Tombol Unduh di Modal Konfirmasi
+            document.getElementById('btnConfirmDownload').addEventListener('click', () => {
+                closeConfirmModal();
+                jalankanUnduhan();
+            });
+        });
+
+        // FUNGSI PENDUKUNG
+        function closeConfirmModal() {
+            document.getElementById('confirmDownloadModal').classList.remove('show');
+        }
+
+        function jalankanUnduhan() {
+            if (selectedFileUrl) {
+                showJtnModal(); // Munculkan modal "Memproses Unduhan" bawaanmu
+                window.open(selectedFileUrl, '_blank');
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('jtnToast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000); // Hilang otomatis setelah 3 detik
+        }
+    </script>
+</body>
+</html>

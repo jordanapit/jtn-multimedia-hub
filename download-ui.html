@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* Desain Glassmorphism & Mica Support */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: transparent; color: #333; user-select: none; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* CUSTOM TITLEBAR */
+        .titlebar { height: 32px; display: flex; justify-content: space-between; align-items: center; padding-left: 14px; -webkit-app-region: drag; }
+        .titlebar-text { font-size: 12px; color: #444; font-weight: 400; display: flex; align-items: center; gap: 8px;}
+        .win-close-btn { width: 46px; height: 32px; background: transparent; border: none; font-size: 14px; color: #333; cursor: default; display: flex; align-items: center; justify-content: center; -webkit-app-region: no-drag; transition: background 0.1s; }
+        .win-close-btn:hover { background: #e81123; color: white; }
+
+        /* KONTEN UTAMA */
+        .container { padding: 10px 20px 20px 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; box-sizing: border-box; }
+        
+        .header { display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; align-items: center; }
+        .filename { color: #1e5690; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; font-size: 14px; }
+        
+        .progress-bar-bg { width: 100%; height: 14px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.05); }
+        .progress-bar-fill { height: 100%; background: #0078D4; width: 0%; transition: width 0.2s ease-out; }
+        
+        .details { display: flex; justify-content: space-between; font-size: 12px; color: #555; font-weight: 400; }
+        .speed { color: #555; font-weight: 500; } 
+        
+        .footer-actions { margin-top: auto; display: flex; justify-content: flex-end; } 
+        
+        /* WIN32 BUTTON STYLE WINDOWS 11 */
+        .btn-action { -webkit-app-region: no-drag; padding: 5px 24px; min-width: 80px; background: #fbfbfb; color: #333; border: 1px solid #d1d1d1; border-radius: 4px; cursor: default; font-weight: 400; font-size: 13px; transition: all 0.1s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .btn-action:hover { background: #f6f6f6; }
+        .btn-action:active { background: #ebebeb; box-shadow: none; border-color: #c6c6c6; }
+
+        /* Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+            body { color: #fff; }
+            .titlebar-text { color: #ccc; }
+            .win-close-btn { color: #fff; }
+            .details { color: #adb5bd; }
+            .progress-bar-bg { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.1); }
+            .progress-bar-fill { background: #60CDFF; } 
+            .filename { color: #fff; }
+            .speed { color: #adb5bd; } 
+            
+            /* Dark mode untuk tombol Batal */
+            .btn-action.btn-cancel { background: #2d2d2d; color: #fff; border-color: #3d3d3d; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06); }
+            .btn-action.btn-cancel:hover { background: #323232; }
+            .btn-action.btn-cancel:active { background: #282828; border-color: #3a3a3a; }
+            
+            /* Dark mode untuk tombol Buka File (Primary Blue) */
+            .btn-action.btn-open { background: #4cc2ff; color: #000; border-color: #4cc2ff; }
+            .btn-action.btn-open:hover { background: #4eb5ec; border-color: #4eb5ec; }
+            .btn-action.btn-open:active { background: #4ca6d7; border-color: #4ca6d7; }
+        }
+        
+        /* Light mode untuk tombol Buka File (Primary Blue) */
+        .btn-action.btn-open { background: #005fb8; color: #fff; border-color: #005fb8; }
+        .btn-action.btn-open:hover { background: #005cb3; }
+        .btn-action.btn-open:active { background: #0058a9; }
+
+        /* =========================================
+           DARK MODE SUPPORT UNTUK DOWNLOAD UI
+           ========================================= */
+        body.dark-mode {
+            color: #e2e8f0;
+            background-color: rgba(25, 27, 34, 0.85); /* Latar gelap menyesuaikan Mica */
+        }
+
+        body.dark-mode .titlebar-text {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .win-close-btn {
+            color: #ffffff;
+        }
+        
+        body.dark-mode .win-close-btn:hover {
+            background: #e81123;
+        }
+
+        body.dark-mode #filename {
+            color: #ffffff !important;
+        }
+
+        body.dark-mode #speed,
+        body.dark-mode .text-muted,
+        body.dark-mode .file-size-info { /* Sesuaikan dengan class teks ukuran file Anda */
+            color: #adb5bd !important;
+        }
+
+        /* Jika progress bar memiliki background bawaan yang terang, gelapkan di sini */
+        body.dark-mode .progress-container {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body.dark-mode .btn-cancel {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        body.dark-mode .btn-cancel:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="titlebar">
+        <div class="titlebar-text">
+            File Downloader - JTN Multimedia Hub
+        </div>
+        <button class="win-close-btn" id="btn-title-close">&#x2715;</button>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="filename" id="filename">Menyiapkan unduhan...</div>
+        </div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+        <div class="details">
+            <div class="speed" id="speed">Menghitung...</div>
+            <div class="size" id="size">0 MB / 0 MB</div>
+        </div>
+        <div class="footer-actions">
+            <button class="btn-action btn-cancel" id="btn-main-action">Batal</button>
+        </div>
+    </div>
+
+    <script>
+        let downloadedFilePath = '';
+        
+        const btnMainAction = document.getElementById('btn-main-action');
+        const btnClose = document.getElementById('btn-title-close');
+
+        // Fungsi Action
+        const cancelDownload = () => window.api.cancelDownload();
+        const openFile = () => { if(downloadedFilePath) window.api.openFile(downloadedFilePath); };
+
+        // Default: Tombol utama berfungsi untuk Batal
+        btnMainAction.addEventListener('click', cancelDownload);
+        btnClose.addEventListener('click', cancelDownload);
+
+        // Update UI
+        window.api.onProgress((event, data) => {
+            document.getElementById('filename').innerText = data.filename;
+            let percent = 0;
+            if(data.total > 0) percent = (data.received / data.total) * 100;
+            document.getElementById('progress-fill').style.width = percent + '%';
+            document.getElementById('speed').innerText = formatBytes(data.speed) + '/s';
+            document.getElementById('size').innerText = formatBytes(data.received) + ' / ' + formatBytes(data.total);
+        });
+
+        // Sukses
+        window.api.onComplete((event, data) => {
+            if(data.status === 'success') {
+                downloadedFilePath = data.path;
+                
+                document.getElementById('filename').innerText = "Unduhan Selesai!";
+                document.getElementById('progress-fill').style.width = '100%';
+                document.getElementById('progress-fill').style.background = '#1cc88a'; 
+                document.getElementById('speed').innerText = "";
+                
+                // UBAH TOMBOL JADI "BUKA FILE"
+                btnMainAction.innerText = "Buka File";
+                btnMainAction.classList.remove('btn-cancel');
+                btnMainAction.classList.add('btn-open');
+                
+                // Switch event listener dari Batal -> Buka File
+                btnMainAction.removeEventListener('click', cancelDownload);
+                btnMainAction.addEventListener('click', openFile);
+                
+                // Tombol X sekarang menutup window, bukan membatalkan (karena sudah selesai)
+                btnClose.removeEventListener('click', cancelDownload);
+                btnClose.addEventListener('click', () => window.close());
+            }
+        });
+
+        function formatBytes(bytes, decimals = 1) {
+            if (!+bytes) return '0 B';
+            const k = 1024; const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        }
+    </script>
+</body>
+</html>

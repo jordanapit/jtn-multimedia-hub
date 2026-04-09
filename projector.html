@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projector - JTN Multimedia Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800&family=Playfair+Display:wght@600;800&family=Lora:wght@600;700&family=Sora:wght@600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --font-family: 'Sora', sans-serif;
+            --font-size: 5.5vw;
+        }
+
+        body {
+            margin: 0; padding: 0; height: 100vh; width: 100vw; overflow: hidden; cursor: none;
+            font-family: var(--font-family); 
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        /* DARK MODE */
+        body.theme-dark { background-color: #000000; color: #ffffff; }
+        body.theme-dark .verse-num { color: #facc15; }
+        body.theme-dark #content { text-shadow: 3px 3px 12px rgba(0,0,0,0.6); }
+
+        /* LIGHT MODE (NATIVE MICA) */
+        body.theme-light { background-color: transparent !important; color: #1a1a1a; }
+        body.theme-light .verse-num { color: #ef4444; }
+        body.theme-light #content { text-shadow: none; }
+
+        /* FIX: LEBAR DIKUNCI 85% LAYAR AGAR SELALU ADA SISA SPACE DI KIRI & KANAN */
+        .scroll-container { 
+            display: flex; align-items: center; justify-content: center; 
+            height: 100%; width: 100%; box-sizing: border-box; 
+        }
+        
+        #content {
+            text-align: center; font-size: var(--font-size); line-height: 1.4; font-weight: 600; 
+            opacity: 0; transition: opacity 0.3s ease-in-out; 
+            
+            /* KUNCI ANTI MENTOK DINDING */
+            width: 85vw; 
+            max-width: 1800px;
+            word-wrap: break-word; overflow-wrap: break-word;
+        }
+        
+        #content.show { opacity: 1; }
+        .verse-num { font-size: 0.6em; vertical-align: super; font-weight: 800; margin-right: 15px; }
+    </style>
+</head>
+<body>
+    <div class="scroll-container" id="container">
+        <div id="content">
+            JTN Multimedia Hub<br>
+            <span style="font-size: 0.5em; font-weight: 600; opacity: 0.7;">Proyektor Siap</span>
+        </div>
+    </div>
+
+    <script>
+        if (window.electronAPI) {
+            const contentDiv = document.getElementById('content');
+            setTimeout(() => contentDiv.classList.add('show'), 100);
+
+            window.electronAPI.onUpdateProjectorText((htmlText) => {
+                contentDiv.classList.remove('show');
+                setTimeout(() => {
+                    contentDiv.innerHTML = htmlText; 
+                    contentDiv.classList.add('show'); 
+                }, 300); 
+            });
+
+            window.electronAPI.onApplyProjectorConfig((config) => {
+                const root = document.documentElement;
+                if (config.theme === 'light') {
+                    document.body.classList.remove('theme-dark');
+                    document.body.classList.add('theme-light');
+                } else {
+                    document.body.classList.remove('theme-light');
+                    document.body.classList.add('theme-dark');
+                }
+                if (config.font) root.style.setProperty('--font-family', config.font);
+                if (config.size) root.style.setProperty('--font-size', config.size);
+            });
+        }
+    </script>
+</body>
+</html>

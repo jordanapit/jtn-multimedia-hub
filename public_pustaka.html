@@ -69,24 +69,38 @@
         .pb-btn-stop { height: 36px; padding: 0 15px; border-radius: 18px; border: none; background: #ef4444; color: white; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: default !important; transition: 0.2s; outline: none !important;}
         .pb-btn-stop:hover { background: #dc2626; box-shadow: 0 4px 12px rgba(239,68,68,0.3); }
 
-        /* === KONTEN UTAMA === */
-        #scroll-wrapper { 
-            position: absolute;
-            top: 35px;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            overflow-y: auto; 
-            overflow-x: hidden; 
-            display: flex; 
-            flex-direction: column; 
-            /* Tambah padding atas agar saat di-scroll mentok ke atas, judul tidak tertutup zona transparan */
-            padding-top: 25px; 
-            padding-bottom: 80px;
+        /* === KONTEN UTAMA (HARD CUT-OFF DI 35PX) === */
+        #page-wrapper {
+            padding-top: 35px !important; /* TEMBOK FISIK: Dorong paksa semua isi ke bawah titlebar */
+        }
 
-            /* REVISI MICA MURNI: 0px-15px hilang total, 15px-60px efek feathering */
-            -webkit-mask-image: linear-gradient(to bottom, transparent 0px, transparent 15px, black 60px);
-            mask-image: linear-gradient(to bottom, transparent 0px, transparent 15px, black 60px);
+        /* === KONTEN UTAMA (DIKUNCI MATI DI BAWAH 35PX) === */
+        #scroll-wrapper { 
+            position: fixed !important; /* Cabut dari flexbox parent, paku ke layar */
+            top: 35px !important; /* HARGA MATI: Dimulai persis di bawah titlebar */
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            overflow-y: auto !important; 
+            overflow-x: hidden !important; 
+            display: flex !important; 
+            flex-direction: column !important; 
+            padding-top: 25px !important; 
+            padding-bottom: 80px !important;
+            margin: 0 !important;
+            -webkit-mask-image: none !important;
+            mask-image: none !important;
+            z-index: 10 !important;
+        }
+
+        /* === MATIKAN SELEKSI TEKS UNTUK JUDUL & TITLEBAR === */
+        .page-title, 
+        .app-title-text, 
+        .electron-drag-area,
+        .titlebar-mask {
+            -webkit-user-select: none !important;
+            user-select: none !important;
+            cursor: default !important;
         }
 
         #scroll-wrapper::-webkit-scrollbar { width: 8px; background: transparent; }
@@ -260,7 +274,11 @@
             <div class="tab-content tab-content-container">
                 <div class="tab-pane fade show active" id="tab-alkitab" role="tabpanel">
                     <div class="row">
-                        <div class="col-md-3"><label>Versi</label><select id="v_alkitab" class="form-control s2"><option value="TB1">Terjemahan Baru 1</option><option value="TOBA">Bibel Batak Toba</option></select></div>
+                        <div class="col-md-3"><label>Versi</label><select id="v_alkitab" class="form-control s2">
+                            <option value="TB1">Terjemahan Baru 1</option>
+                            <option value="TB2">Terjemahan Baru 2</option>
+                            <option value="TOBA">Bibel Batak Toba</option>
+                        </select></div>
                         <div class="col-md-5"><label>Kitab</label><select id="k_alkitab" class="form-control s2"></select></div>
                         <div class="col-md-2"><label>Pasal</label><select id="p_alkitab" class="form-control s2"></select></div>
                         <div class="col-md-2"><label>&nbsp;</label><button id="btn_alkitab" class="btn btn-primary btn-block">Tampilkan</button></div>
@@ -320,12 +338,22 @@ let currentSlideIndex = -1;
 
 function togglePresentation() {
     if (!window.electronAPI) return;
+    
+    // Kita tangkap DUA-DUANYA agar aman di halaman mana pun!
     const btn = document.getElementById('btn-slideshow');
+    const btnNav = document.getElementById('btn-slideshow-nav');
     
     if (!isPresentationMode) {
-        window.electronAPI.startPresentation();
+        // Lempar ID Monitor saat Start
+        const selectedMonitor = localStorage.getItem('projMonitor') || 'auto';
+        window.electronAPI.startPresentation(selectedMonitor);
+        
         isPresentationMode = true;
-        btn.classList.add('active');
+        
+        // Aktifkan tombol yang tersedia tanpa bikin error
+        if (btn) btn.classList.add('active');
+        if (btnNav) btnNav.classList.add('active');
+        
         document.body.classList.add('presentation-mode');
         sendProjectorConfig();
         initPresenterBar();
@@ -337,8 +365,17 @@ function togglePresentation() {
 
 function resetPresentationState() {
     isPresentationMode = false;
+    
     const btn = document.getElementById('btn-slideshow');
-    if(btn) btn.classList.remove('active');
+    const btnNav = document.getElementById('btn-slideshow-nav');
+    
+    if (btn) btn.classList.remove('active');
+    if (btnNav) {
+        btnNav.classList.remove('active');
+        btnNav.title = "Mulai Slide Show (F5)";
+        btnNav.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><polygon points="10 7 15 10 10 13 10 7"></polygon><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>';
+    }
+    
     document.body.classList.remove('presentation-mode');
     document.getElementById('presenter-bar').classList.remove('show');
     $('.verse-block').removeClass('live-now'); 
@@ -444,7 +481,16 @@ function sendProjectorConfig() {
 }
 
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'F5') { e.preventDefault(); togglePresentation(); }
+    // F5 berfungsi sebagai tombol Sakelar (Mulai / Hentikan)
+    if (e.key === 'F5') { 
+        e.preventDefault(); 
+        togglePresentation(); 
+    }
+    // Esc khusus HANYA untuk Menghentikan (jika sedang tayang)
+    if (e.key === 'Escape' && isPresentationMode) { 
+        e.preventDefault(); 
+        togglePresentation(); // Karena statusnya sedang tayang, ini otomatis akan mematikan proyektor
+    }
 });
 
 if (window.electronAPI && window.electronAPI.onPresentationStopped) {
@@ -835,20 +881,90 @@ window.addEventListener('load', function() {
         const bD = { "Kejadian": 50, "Keluaran": 40, "Imamat": 27, "Bilangan": 36, "Ulangan": 34, "Yosua": 24, "Hakim-hakim": 21, "Rut": 4, "1 Samuel": 31, "2 Samuel": 24, "1 Raja-raja": 22, "2 Raja-raja": 25, "1 Tawarikh": 29, "2 Tawarikh": 36, "Ezra": 10, "Nehemia": 13, "Ester": 10, "Ayub": 42, "Mazmur": 150, "Amsal": 31, "Pengkhotbah": 12, "Kidung Agung": 8, "Yesaya": 66, "Yeremia": 52, "Ratapan": 5, "Yehezkiel": 48, "Daniel": 12, "Hosea": 14, "Yoel": 3, "Amos": 9, "Obaja": 1, "Yunus": 4, "Mikha": 7, "Nahum": 3, "Habakuk": 3, "Zefanya": 3, "Hagai": 2, "Zakharia": 14, "Maleakhi": 4, "Matius": 28, "Markus": 16, "Lukas": 24, "Yohanes": 21, "Kisah Para Rasul": 28, "Roma": 16, "1 Korintus": 16, "2 Korintus": 13, "Galatia": 6, "Efesus": 6, "Filipi": 4, "Kolose": 4, "1 Tesalonika": 5, "2 Tesalonika": 3, "1 Timotius": 6, "2 Timotius": 4, "Titus": 3, "Filemon": 1, "Ibrani": 13, "Yakobus": 5, "1 Petrus": 5, "2 Petrus": 3, "1 Yohanes": 5, "2 Yohanes": 1, "3 Yohanes": 1, "Yudas": 1, "Wahyu": 22 };
         const namaBatak = { "Kejadian": "1 Musa", "Keluaran": "2 Musa", "Imamat": "3 Musa", "Bilangan": "4 Musa", "Ulangan": "5 Musa", "Yosua": "Josua", "Hakim-hakim": "Panguhum", "Rut": "Rut", "1 Samuel": "1 Samuel", "2 Samuel": "2 Samuel", "1 Raja-raja": "1 Raja-raja", "2 Raja-raja": "2 Raja-raja", "1 Tawarikh": "1 Kronika", "2 Tawarikh": "2 Kronika", "Ezra": "Esra", "Nehemia": "Nehemia", "Ester": "Ester", "Ayub": "Job", "Mazmur": "Psalmen", "Amsal": "Poda", "Pengkhotbah": "Parjamita", "Kidung Agung": "Ende ni si Salomo", "Yesaya": "Jesaya", "Yeremia": "Jeremia", "Ratapan": "Andung-andung", "Yehezkiel": "Hesekiel", "Daniel": "Daniel", "Hosea": "Hosea", "Yoel": "Joel", "Amos": "Amos", "Obaja": "Obaja", "Yunus": "Jona", "Mikha": "Mika", "Nahum": "Nahum", "Habakuk": "Habakuk", "Zefanya": "Sepania", "Hagai": "Haggai", "Zakharia": "Sakaria", "Maleakhi": "Maleaki", "Matius": "Mateus", "Markus": "Markus", "Lukas": "Lukas", "Yohanes": "Johannes", "Kisah Para Rasul": "Ulaon ni Apostel", "Roma": "Rom", "1 Korintus": "1 Korint", "2 Korintus": "2 Korint", "Galatia": "Galatia", "Efesus": "Epesus", "Filipi": "Pilippi", "Kolose": "Kolosse", "1 Tesalonika": "1 Tessalonik", "2 Tesalonika": "2 Tessalonik", "1 Timotius": "1 Timoteus", "2 Timotius": "2 Timoteus", "Titus": "Titus", "Filemon": "Pilemon", "Ibrani": "Heber", "Yakobus": "Jakobus", "1 Petrus": "1 Petrus", "2 Petrus": "2 Petrus", "1 Yohanes": "1 Johannes", "2 Yohanes": "2 Johannes", "3 Yohanes": "3 Johannes", "Yudas": "Judas", "Wahyu": "Pangungkapon" };
 
-        function renderDropdownKitab() {
-            const v = $('#v_alkitab').val(); let kH = '<option value="">Pilih Kitab...</option>';
-            Object.keys(bD).forEach(k => kH += `<option value="${k}">${(v === 'TOBA' ? namaBatak[k] : k)}</option>`);
-            let s = $('#k_alkitab').val(); $('#k_alkitab').html(kH);
-            if(s) $('#k_alkitab').val(s).trigger('change');
+        // ==========================================
+        // LOGIKA DROPDOWN DINAMIS (MENDUKUNG DATABASE CICILAN)
+        // ==========================================
+        let currentBibleStructure = {};
+
+        function loadBibleStructure(versi) {
+            const cacheKey = 'jtn_bible_struct_' + versi;
+            const cachedData = localStorage.getItem(cacheKey);
+
+            function renderStructure(dataStr) {
+                try {
+                    currentBibleStructure = JSON.parse(dataStr);
+                    renderDropdownKitab();
+                } catch(e) {}
+            }
+
+            if (cachedData) renderStructure(cachedData);
+
+            // Deteksi URL otomatis agar bisa dipakai di User.php, Auth.php, maupun Electron
+            let apiUrl = "https://absen.hkbpjtn.web.id/multimedia/auth/get_bible_structure"; // Default fallback (Electron)
+            if (window.location.href.includes('/user/')) {
+                apiUrl = "<?= base_url('user/get_bible_structure'); ?>";
+            } else if (window.location.href.includes('/auth/')) {
+                apiUrl = "<?= base_url('auth/get_bible_structure'); ?>";
+            }
+
+            if (navigator.onLine) {
+                $.post(apiUrl, { versi: versi }, function(res) {
+                    localStorage.setItem(cacheKey, res); // Simpan Cache untuk Offline Mode!
+                    if (!cachedData) renderStructure(res);
+                }).fail(function() {
+                    if (!cachedData) $('#k_alkitab').html('<option value="">Gagal koneksi server...</option>');
+                });
+            } else if (!cachedData) {
+                $('#k_alkitab').html('<option value="">Offline: Data struktur belum tersimpan</option>');
+            }
         }
 
-        renderDropdownKitab();
-        $('#v_alkitab').on('change', renderDropdownKitab);
+        function renderDropdownKitab() {
+            const v = $('#v_alkitab').val(); 
+            let kH = '<option value="">Pilih Kitab...</option>';
+            
+            // Urutkan kitab sesuai urutan asli Alkitab (pakai array dari bD)
+            const standardOrder = Object.keys(bD);
+            const availableBooks = Object.keys(currentBibleStructure).sort((a, b) => {
+                return standardOrder.indexOf(a) - standardOrder.indexOf(b);
+            });
+
+            // Loop hanya kitab yang ADA DI DATABASE
+            availableBooks.forEach(k => {
+                kH += `<option value="${k}">${(v === 'TOBA' ? namaBatak[k] : k)}</option>`;
+            });
+
+            let s = $('#k_alkitab').val(); 
+            $('#k_alkitab').html(kH);
+            
+            if(s && availableBooks.includes(s)) {
+                $('#k_alkitab').val(s).trigger('change');
+            } else {
+                $('#p_alkitab').html('<option value="">Pasal...</option>').trigger('change');
+            }
+        }
+
+        $('#v_alkitab').on('change', function() { 
+            $('#k_alkitab').html('<option value="">Memuat data kitab...</option>');
+            $('#p_alkitab').html('<option value="">Pasal...</option>');
+            loadBibleStructure($(this).val()); 
+        });
+        
         $('#k_alkitab').on('change', function() {
-            const k = $(this).val(); let pH = '<option value="">Pasal...</option>';
-            if(k) for(let i=1; i<=bD[k]; i++) pH += `<option value="${i}">${i}</option>`;
+            const k = $(this).val(); 
+            let pH = '<option value="">Pasal...</option>';
+            
+            // Render hanya pasal yang ADA DI DATABASE
+            if(k && currentBibleStructure[k]) {
+                currentBibleStructure[k].forEach(pasal => {
+                    pH += `<option value="${pasal}">${pasal}</option>`;
+                });
+            }
             $('#p_alkitab').html(pH).trigger('change');
-        }).trigger('change');
+        });
+
+        // Tarik struktur data saat halaman pertama kali termuat
+        loadBibleStructure($('#v_alkitab').val());
     })(jQuery);
 });
 </script>

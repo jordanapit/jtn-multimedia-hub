@@ -38,7 +38,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     openAboutWindow: () => ipcRenderer.send('open-about-window'),
 
     // Presentation / Projector
-    startPresentation: () => ipcRenderer.send('start-presentation'),
+    getDisplays: () => ipcRenderer.invoke('get-displays'),
+    startPresentation: (monitorId) => ipcRenderer.send('start-presentation', monitorId), // (Ubah baris startPresentation yang lama jadi seperti ini)
     stopPresentation: () => ipcRenderer.send('stop-presentation'),
     sendToProjector: (text) => ipcRenderer.send('send-to-projector', text),
     onUpdateProjectorText: (callback) => ipcRenderer.on('update-projector-text', (event, text) => callback(text)),

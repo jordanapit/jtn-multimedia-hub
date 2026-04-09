@@ -81,6 +81,19 @@
                 if (config.size) root.style.setProperty('--font-size', config.size);
             });
         }
+
+        // ==========================================
+        // TAMBAHKAN KODE INI: PANIC BUTTON (ESC & F5)
+        // ==========================================
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' || e.key === 'F5') {
+                e.preventDefault();
+                // Menutup window ini akan otomatis memicu event 'closed' di main.js 
+                // dan mengembalikan status UI di layar operator!
+                window.close(); 
+            }
+        });
+        // ==========================================
     </script>
 </body>
 </html>

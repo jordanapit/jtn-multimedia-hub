@@ -136,6 +136,15 @@
             <div id="tab-slide" class="tab-pane">
                 <div class="setting-group">
                     <div class="setting-row">
+                        <div>
+                            <div class="setting-text-main">Monitor Slideshow</div>
+                            <div class="setting-text-sub">Pilih layar tayang</div>
+                        </div>
+                        <select id="projMonitorSelect" class="jtn-select">
+                            <option value="auto">Otomatis (Monitor 2)</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
                         <div><div class="setting-text-main">Tema Slideshow</div></div>
                         <select id="projThemeSelect" class="jtn-select">
                             <option value="dark">Gelap (Teks Putih)</option>
@@ -249,6 +258,22 @@
             document.getElementById('projThemeSelect').addEventListener('change', updateProjector);
             document.getElementById('projFontSelect').addEventListener('change', updateProjector);
             document.getElementById('projSizeSelect').addEventListener('change', updateProjector);
+
+            // Ambil daftar monitor fisik
+            const monSelect = document.getElementById('projMonitorSelect');
+            if (window.electronAPI.getDisplays) {
+                const displays = await window.electronAPI.getDisplays();
+                displays.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.id;
+                    opt.textContent = d.label;
+                    monSelect.appendChild(opt);
+                });
+            }
+            monSelect.value = appConfigs.projMonitor || 'auto';
+            monSelect.addEventListener('change', () => {
+                window.electronAPI.updateAppConfig('projMonitor', monSelect.value);
+            });
         });
     </script>
 </body>

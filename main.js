@@ -488,6 +488,15 @@ ipcMain.handle('get-startup-status', () => { return app.getLoginItemSettings().o
 ipcMain.on('toggle-startup', (event, enable) => { app.setLoginItemSettings({ openAtLogin: enable, path: app.getPath('exe') }); });
 ipcMain.handle('get-app-version', () => app.getVersion());
 
+ipcMain.handle('get-displays', () => {
+    const { screen } = require('electron');
+    return screen.getAllDisplays().map((d, index) => ({
+        id: d.id,
+        bounds: d.bounds,
+        label: `Monitor ${index + 1} (${d.bounds.width}x${d.bounds.height}) ${d.id === screen.getPrimaryDisplay().id ? '(Utama)' : ''}`
+    }));
+});
+
 // ========================================================
 // RADAR TEMA WINDOWS REAL-TIME (BYPASS MICA LOCK)
 // ========================================================
@@ -711,24 +720,68 @@ ipcMain.on('open-downloaded-file', (event, filePath) => {
 // SISTEM SLIDE SHOW PROYEKTOR (DUAL MONITOR)
 // ========================================================
 let projectorWindow = null;
+let originalMainBounds = null;   // Menyimpan koordinat asli sebelum pindah
+let teleportedMainBounds = null; // Menyimpan koordinat di monitor ke-2
+let didAutoMove = false;         // Penanda apakah kita barusan melakukan teleportasi
 
-ipcMain.on('start-presentation', () => {
-    if (projectorWindow) return; 
+ipcMain.on('start-presentation', (event, monitorId) => {
+    if (projectorWindow) return;
 
+    const { screen } = require('electron');
     const displays = screen.getAllDisplays();
-    let externalDisplay = displays.find((display) => {
-        return display.bounds.x !== 0 || display.bounds.y !== 0;
-    });
+    let targetDisplay = null;
 
-    const targetDisplay = externalDisplay || screen.getPrimaryDisplay();
+    // 1. Tentukan Monitor Target Proyektor
+    if (monitorId && monitorId !== 'auto') {
+        targetDisplay = displays.find(d => d.id.toString() === monitorId.toString());
+    } 
+    else if (currentAppConfigs.projMonitor && currentAppConfigs.projMonitor !== 'auto') {
+        targetDisplay = displays.find(d => d.id.toString() === currentAppConfigs.projMonitor.toString());
+    }
 
+    if (!targetDisplay) {
+        targetDisplay = displays.find(d => d.id !== screen.getPrimaryDisplay().id) || screen.getPrimaryDisplay();
+    }
+
+    // === LOGIKA AUTO-MOVE (ANTI-BENTROK) ===
+    if (mainWindow && !mainWindow.isDestroyed() && displays.length > 1) {
+        const mainWindowBounds = mainWindow.getBounds();
+        const currentMainDisplay = screen.getDisplayMatching(mainWindowBounds);
+
+        if (currentMainDisplay.id === targetDisplay.id) {
+            const altDisplay = displays.find(d => d.id !== targetDisplay.id);
+            
+            if (altDisplay) {
+                // SIMPAN POSISI ASLI SEBELUM PINDAH!
+                originalMainBounds = mainWindowBounds;
+                didAutoMove = true;
+
+                const newX = altDisplay.bounds.x + Math.round((altDisplay.bounds.width - mainWindowBounds.width) / 2);
+                const newY = altDisplay.bounds.y + Math.round((altDisplay.bounds.height - mainWindowBounds.height) / 2);
+                
+                // Simpan koordinat tujuan untuk bahan perbandingan nanti
+                teleportedMainBounds = {
+                    x: newX,
+                    y: newY,
+                    width: mainWindowBounds.width,
+                    height: mainWindowBounds.height
+                };
+
+                // Teleportasi!
+                mainWindow.setBounds(teleportedMainBounds);
+            }
+        }
+    }
+    // =======================================
+
+    // 2. Buat Jendela Proyektor
     projectorWindow = new BrowserWindow({
         x: targetDisplay.bounds.x,
         y: targetDisplay.bounds.y,
-        width: targetDisplay.bounds.width,
-        height: targetDisplay.bounds.height,
-        fullscreen: true,
+        width: 800,
+        height: 600,
         frame: false,
+        autoHideMenuBar: true,
         alwaysOnTop: false, 
         backgroundMaterial: 'mica', 
         backgroundColor: '#00000000', 
@@ -740,12 +793,13 @@ ipcMain.on('start-presentation', () => {
         }
     });
 
+    projectorWindow.setBounds(targetDisplay.bounds);
+    projectorWindow.setFullScreen(true);
+
     projectorWindow.loadFile('projector.html');
 
     projectorWindow.once('ready-to-show', () => {
         projectorWindow.showInactive(); 
-        
-        // LANGSUNG TEMBAKKAN PENGATURAN TERAKHIR SAAT PROYEKTOR MUNCUL
         projectorWindow.webContents.send('apply-projector-config', {
             theme: currentAppConfigs.projTheme,
             font: currentAppConfigs.projFont,
@@ -753,9 +807,34 @@ ipcMain.on('start-presentation', () => {
         });
     });
 
+    // === LOGIKA SAAT PROYEKTOR DITUTUP (PENGEMBALIAN POSISI) ===
     projectorWindow.on('closed', () => {
         projectorWindow = null;
+
         if (mainWindow && !mainWindow.isDestroyed()) {
+            
+            // Cek apakah tadi kita melakukan teleportasi
+            if (didAutoMove && originalMainBounds && teleportedMainBounds) {
+                const currentBounds = mainWindow.getBounds();
+                const isMaximized = mainWindow.isMaximized();
+                
+                // Cek apakah window DIGESER atau DI-RESIZE oleh user selama di monitor 2
+                const isMoved = currentBounds.x !== teleportedMainBounds.x || 
+                                currentBounds.y !== teleportedMainBounds.y || 
+                                currentBounds.width !== teleportedMainBounds.width || 
+                                currentBounds.height !== teleportedMainBounds.height;
+
+                // Jika TIDAK digeser dan TIDAK di-maximize, kembalikan ke habitat aslinya!
+                if (!isMoved && !isMaximized) {
+                    mainWindow.setBounds(originalMainBounds);
+                }
+
+                // Reset ingatan untuk sesi berikutnya
+                didAutoMove = false;
+                originalMainBounds = null;
+                teleportedMainBounds = null;
+            }
+
             mainWindow.webContents.send('presentation-stopped');
         }
     });

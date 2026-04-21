@@ -3,177 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        /* Desain Glassmorphism & Mica Support */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: transparent; color: #333; user-select: none; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
-        
-        /* CUSTOM TITLEBAR */
-        .titlebar { height: 32px; display: flex; justify-content: space-between; align-items: center; padding-left: 14px; -webkit-app-region: drag; }
-        .titlebar-text { font-size: 12px; color: #444; font-weight: 400; display: flex; align-items: center; gap: 8px;}
-        .win-close-btn { width: 46px; height: 32px; background: transparent; border: none; font-size: 14px; color: #333; cursor: default; display: flex; align-items: center; justify-content: center; -webkit-app-region: no-drag; transition: background 0.1s; }
-        .win-close-btn:hover { background: #e81123; color: white; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; padding: 0; 
+            background: transparent; 
+            color: #333; 
+            user-select: none; 
+            overflow: hidden; 
+            display: flex; flex-direction: column; height: 100vh; 
+        }
 
-        /* KONTEN UTAMA */
-        .container { padding: 10px 20px 20px 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; box-sizing: border-box; }
+        .container { 
+            padding: 22px 25px 25px 25px; /* Tambah padding bawah sedikit lagi */
+            display: flex; flex-direction: column; gap: 15px; flex: 1; box-sizing: border-box; 
+        }
         
         .header { display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; align-items: center; }
         .filename { color: #1e5690; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; font-size: 14px; }
         
-        .progress-bar-bg { width: 100%; height: 14px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.05); }
-        .progress-bar-fill { height: 100%; background: #0078D4; width: 0%; transition: width 0.2s ease-out; }
+        /* PROGRESS BAR - Base Style */
+        .progress-bar-bg { 
+            width: 100%; height: 14px; 
+            background: rgba(0,0,0,0.08); 
+            border-radius: 4px; 
+            overflow: hidden; 
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); 
+            border: 1px solid rgba(0,0,0,0.05); 
+        }
+
+        .progress-bar-fill { 
+            height: 100%; 
+            background-color: #0078D4; 
+            width: 0%; 
+            transition: width 0.3s ease-out; 
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* EFEK LIGHTNING / SHIMMER (Vista/7 Style) */
+        .progress-bar-fill::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.3) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            background-size: 100px 100%;
+            background-repeat: no-repeat;
+            animation: vistaLightning 1.5s infinite linear;
+        }
+
+        @keyframes vistaLightning {
+            from { transform: translateX(-100px); }
+            to { transform: translateX(450px); }
+        }
         
-        .details { display: flex; justify-content: space-between; font-size: 12px; color: #555; font-weight: 400; }
-        .speed { color: #555; font-weight: 500; } 
+        .details { display: flex; justify-content: space-between; font-size: 12px; color: #555; font-weight: 400; align-items: center; }
+        .speed-eta { display: flex; align-items: center; gap: 5px; }
+        .speed { color: #555; font-weight: 600; } 
+        .eta { color: #777; }
         
         .footer-actions { margin-top: auto; display: flex; justify-content: flex-end; } 
         
-        /* WIN32 BUTTON STYLE WINDOWS 11 */
-        .btn-action { -webkit-app-region: no-drag; padding: 5px 24px; min-width: 80px; background: #fbfbfb; color: #333; border: 1px solid #d1d1d1; border-radius: 4px; cursor: default; font-weight: 400; font-size: 13px; transition: all 0.1s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .btn-action:hover { background: #f6f6f6; }
-        .btn-action:active { background: #ebebeb; box-shadow: none; border-color: #c6c6c6; }
-
-        /* Dark Mode Support */
-        @media (prefers-color-scheme: dark) {
-            body { color: #fff; }
-            .titlebar-text { color: #ccc; }
-            .win-close-btn { color: #fff; }
-            .details { color: #adb5bd; }
-            .progress-bar-bg { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.1); }
-            .progress-bar-fill { background: #60CDFF; } 
-            .filename { color: #fff; }
-            .speed { color: #adb5bd; } 
-            
-            /* Dark mode untuk tombol Batal */
-            .btn-action.btn-cancel { background: #2d2d2d; color: #fff; border-color: #3d3d3d; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06); }
-            .btn-action.btn-cancel:hover { background: #323232; }
-            .btn-action.btn-cancel:active { background: #282828; border-color: #3a3a3a; }
-            
-            /* Dark mode untuk tombol Buka File (Primary Blue) */
-            .btn-action.btn-open { background: #4cc2ff; color: #000; border-color: #4cc2ff; }
-            .btn-action.btn-open:hover { background: #4eb5ec; border-color: #4eb5ec; }
-            .btn-action.btn-open:active { background: #4ca6d7; border-color: #4ca6d7; }
-        }
-        
-        /* Light mode untuk tombol Buka File (Primary Blue) */
-        .btn-action.btn-open { background: #005fb8; color: #fff; border-color: #005fb8; }
-        .btn-action.btn-open:hover { background: #005cb3; }
-        .btn-action.btn-open:active { background: #0058a9; }
-
         /* =========================================
-           DARK MODE SUPPORT UNTUK DOWNLOAD UI
+           WINDOWS 11 NATIVE BUTTON STYLE
            ========================================= */
-        body.dark-mode {
-            color: #e2e8f0;
-            background-color: rgba(25, 27, 34, 0.85); /* Latar gelap menyesuaikan Mica */
+        .btn-win11 {
+            background: #f3f3f3;
+            color: #1a1a1a;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 6px 32px;
+            border-radius: 4px;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            cursor: default;
+            transition: all 0.2s ease-in-out;
+            outline: none;
         }
 
-        body.dark-mode .titlebar-text {
-            color: #e2e8f0;
+        .btn-win11:hover {
+            background: #E0EEF9 !important;
+            border-color: #0078D4 !important;
+            color: #000000 !important;
         }
 
-        body.dark-mode .win-close-btn {
+        .btn-win11:active {
+            background: #CCE4F7 !important;
+            transform: scale(0.98);
+        }
+
+        /* Tombol Buka File (Primary) */
+        .btn-win11.btn-open {
+            background: #0067c0;
             color: #ffffff;
-        }
-        
-        body.dark-mode .win-close-btn:hover {
-            background: #e81123;
+            border-color: #0067c0;
         }
 
-        body.dark-mode #filename {
+        .btn-win11.btn-open:hover {
+            background: #005dae !important;
+            border-color: #005dae !important;
             color: #ffffff !important;
         }
 
-        body.dark-mode #speed,
-        body.dark-mode .text-muted,
-        body.dark-mode .file-size-info { /* Sesuaikan dengan class teks ukuran file Anda */
-            color: #adb5bd !important;
+        /* =========================================
+           DARK MODE OVERRIDES
+           ========================================= */
+        body.dark-mode { color: #e2e8f0; background-color: rgba(33, 36, 43, 0.95); }
+        body.dark-mode .progress-bar-bg { background: rgba(255,255,255,0.1); }
+        body.dark-mode .progress-bar-fill { background-color: #60CDFF; }
+        body.dark-mode .filename { color: #ffffff !important; }
+        body.dark-mode .speed { color: #ffffff !important; }
+        body.dark-mode .eta, body.dark-mode .size { color: #adb5bd !important; }
+
+        body.dark-mode .btn-win11 {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
         }
 
-        /* Jika progress bar memiliki background bawaan yang terang, gelapkan di sini */
-        body.dark-mode .progress-container {
-            background-color: rgba(255, 255, 255, 0.1);
+        body.dark-mode .btn-win11:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
         }
 
-        body.dark-mode .btn-cancel {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: #e2e8f0;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        body.dark-mode .btn-cancel:hover {
-            background-color: rgba(255, 255, 255, 0.2);
+        body.dark-mode .btn-win11.btn-open {
+            background: #4cc2ff;
+            color: #000000;
+            border-color: #4cc2ff;
         }
     </style>
 </head>
 <body>
-    <div class="titlebar">
-        <div class="titlebar-text">
-            File Downloader - JTN Multimedia Hub
-        </div>
-        <button class="win-close-btn" id="btn-title-close">&#x2715;</button>
-    </div>
-    
     <div class="container">
         <div class="header">
-            <div class="filename" id="filename">Menyiapkan unduhan...</div>
+            <div class="filename" id="filename">Menyiapkan...</div>
         </div>
         <div class="progress-bar-bg">
             <div class="progress-bar-fill" id="progress-fill"></div>
         </div>
         <div class="details">
-            <div class="speed" id="speed">Menghitung...</div>
-            <div class="size" id="size">0 MB / 0 MB</div>
+            <div class="speed-eta">
+                <span class="speed" id="speed">0 KB/s</span>
+                <span class="eta" id="eta"></span>
+            </div>
+            <div class="size" id="size">0 B / 0 B</div>
         </div>
         <div class="footer-actions">
-            <button class="btn-action btn-cancel" id="btn-main-action">Batal</button>
+            <button class="btn-win11" id="btn-main-action">Batal</button>
         </div>
     </div>
 
     <script>
         let downloadedFilePath = '';
-        
         const btnMainAction = document.getElementById('btn-main-action');
-        const btnClose = document.getElementById('btn-title-close');
 
-        // Fungsi Action
         const cancelDownload = () => window.api.cancelDownload();
         const openFile = () => { if(downloadedFilePath) window.api.openFile(downloadedFilePath); };
 
-        // Default: Tombol utama berfungsi untuk Batal
         btnMainAction.addEventListener('click', cancelDownload);
-        btnClose.addEventListener('click', cancelDownload);
 
-        // Update UI
         window.api.onProgress((event, data) => {
             document.getElementById('filename').innerText = data.filename;
-            let percent = 0;
-            if(data.total > 0) percent = (data.received / data.total) * 100;
+            let percent = (data.total > 0) ? (data.received / data.total) * 100 : 0;
             document.getElementById('progress-fill').style.width = percent + '%';
             document.getElementById('speed').innerText = formatBytes(data.speed) + '/s';
             document.getElementById('size').innerText = formatBytes(data.received) + ' / ' + formatBytes(data.total);
+
+            const etaElement = document.getElementById('eta');
+            if (data.eta && data.eta > 0 && data.received < data.total) {
+                etaElement.innerText = " • Sisa waktu: " + formatTime(data.eta);
+            } else { etaElement.innerText = ""; }
         });
 
-        // Sukses
         window.api.onComplete((event, data) => {
             if(data.status === 'success') {
                 downloadedFilePath = data.path;
-                
                 document.getElementById('filename').innerText = "Unduhan Selesai!";
-                document.getElementById('progress-fill').style.width = '100%';
-                document.getElementById('progress-fill').style.background = '#1cc88a'; 
+                const fill = document.getElementById('progress-fill');
+                fill.style.width = '100%';
+                fill.style.backgroundColor = '#1cc88a'; 
                 document.getElementById('speed').innerText = "";
+                document.getElementById('eta').innerText = "";
                 
-                // UBAH TOMBOL JADI "BUKA FILE"
                 btnMainAction.innerText = "Buka File";
-                btnMainAction.classList.remove('btn-cancel');
-                btnMainAction.classList.add('btn-open');
-                
-                // Switch event listener dari Batal -> Buka File
+                btnMainAction.className = 'btn-win11 btn-open';
                 btnMainAction.removeEventListener('click', cancelDownload);
                 btnMainAction.addEventListener('click', openFile);
-                
-                // Tombol X sekarang menutup window, bukan membatalkan (karena sudah selesai)
-                btnClose.removeEventListener('click', cancelDownload);
-                btnClose.addEventListener('click', () => window.close());
             }
         });
 
@@ -183,6 +202,15 @@
             const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        }
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            if (h > 0) return `${h}j ${m}m`;
+            if (m > 0) return `${m}m ${s}d`;
+            return `${s} detik`;
         }
     </script>
 </body>

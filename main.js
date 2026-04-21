@@ -1,8 +1,17 @@
-const { app, BrowserWindow, shell, ipcMain, dialog, nativeTheme, session, screen, Tray, Menu } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, dialog, nativeTheme, session, screen, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 const { execSync, exec } = require('child_process');
+
+// --- 1. DAFTARKAN PROTOKOL jtn:// KE SISTEM OPERASI ---
+if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+        app.setAsDefaultProtocolClient('jtn', process.execPath, [path.resolve(process.argv[1])]);
+    }
+} else {
+    app.setAsDefaultProtocolClient('jtn');
+}
 
 let mainWindow;
 
@@ -87,8 +96,16 @@ async function createWindow() {
 
     mainWindow.loadFile('login.html', { query: queryParams });
 
+    const isStartupLaunch = process.argv.includes('--startup');
+
     mainWindow.once('ready-to-show', () => {
-        mainWindow.show();
+        // Jika dijalankan lewat startup DAN user ingin sembunyi di background
+        if (isStartupLaunch && currentAppConfigs.runInBackground) {
+            mainWindow.hide(); 
+            console.log("App started silently in background");
+        } else {
+            mainWindow.show();
+        }
     });
 
     const authUrls = [
@@ -106,11 +123,23 @@ async function createWindow() {
             if (urlObj.searchParams.get('from_local') === '1') return;
 
             event.preventDefault(); 
-            if (urlObj.searchParams.get('logout') === 'success') {
-                mainWindow.loadFile('login.html', { query: { logout: 'success' } });
-            } else {
-                mainWindow.loadFile('login.html', { query: { skip_splash: '1' } }); 
-            }
+            
+            // PERBAIKAN: Cek cookie diam-diam sebelum melempar ke login.html
+            session.defaultSession.cookies.get({ url: APP_URL }).then((cookies) => {
+                const hasCookies = cookies.some(c => c.name === 'remember_token');
+                let qParams = {};
+                
+                // Jika token ada, selipkan parameter ini agar login.html otomatis masuk
+                if (hasCookies) qParams.has_cookies = '1';
+
+                if (urlObj.searchParams.get('logout') === 'success') {
+                    qParams.logout = 'success';
+                    mainWindow.loadFile('login.html', { query: qParams });
+                } else {
+                    qParams.skip_splash = '1';
+                    mainWindow.loadFile('login.html', { query: qParams }); 
+                }
+            });
         }
     };
 
@@ -122,7 +151,14 @@ async function createWindow() {
         let cleanUrl = url.split('?')[0].replace(/\/$/, "");
         if (authUrls.includes(cleanUrl)) {
             if (urlObj.searchParams.get('from_local') === '1') return;
-            mainWindow.loadFile('login.html', { query: { skip_splash: '1' } }); 
+            
+            // PERBAIKAN: Sama seperti di atas, pastikan cek cookie dulu
+            session.defaultSession.cookies.get({ url: APP_URL }).then((cookies) => {
+                const hasCookies = cookies.some(c => c.name === 'remember_token');
+                let qParams = { skip_splash: '1' };
+                if (hasCookies) qParams.has_cookies = '1';
+                mainWindow.loadFile('login.html', { query: qParams }); 
+            });
         }
     });
 
@@ -215,9 +251,9 @@ async function createWindow() {
     mainWindow.on('unmaximize', () => { mainWindow.webContents.send('maximize-change', false); });
 
     mainWindow.on('close', (event) => {
-        if (currentAppConfigs.runInBackground && !app.isQuiting) {
-            event.preventDefault(); // Cegah penutupan
-            mainWindow.hide(); // Sembunyikan ke tray
+        if (!app.isQuiting) {
+            event.preventDefault(); // Cegah penutupan aplikasi
+            mainWindow.hide();      // Sembunyikan ke System Tray
         }
     });
 
@@ -485,7 +521,13 @@ ipcMain.handle('open-external', async (event, url) => {
 });
 
 ipcMain.handle('get-startup-status', () => { return app.getLoginItemSettings().openAtLogin; });
-ipcMain.on('toggle-startup', (event, enable) => { app.setLoginItemSettings({ openAtLogin: enable, path: app.getPath('exe') }); });
+ipcMain.on('toggle-startup', (event, enable) => {
+    app.setLoginItemSettings({ 
+        openAtLogin: enable, 
+        path: app.getPath('exe'),
+        args: ['--startup'] // Flag penting
+    });
+});
 ipcMain.handle('get-app-version', () => app.getVersion());
 
 ipcMain.handle('get-displays', () => {
@@ -564,20 +606,31 @@ ipcMain.on('update-app-config', (event, { key, value }) => {
 let tray = null;
 app.isQuiting = false; // Flag penting agar app bisa di-close
 
+// --- BAGIAN 1: SETTING TRAY YANG SELALU AKTIF (ANTI GAGAL) ---
 function manageTray() {
-    if (currentAppConfigs.runInBackground) {
-        if (tray) return; // Sudah ada
-        tray = new Tray(path.join(__dirname, 'assets/picture/favicon.png'));
+    if (tray) return; // Jika sudah ada, jangan buat lagi
+    
+    try {
+        // Ambil path gambar
+        const iconPath = path.join(__dirname, 'assets/picture/favicon.png');
+        
+        // Jurus Paksa: Resize gambar jadi 16x16 pixel agar Windows tidak rewel
+        let trayIcon = nativeImage.createFromPath(iconPath);
+        trayIcon = trayIcon.resize({ width: 16, height: 16 });
+        
+        tray = new Tray(trayIcon);
         const contextMenu = Menu.buildFromTemplate([
             { label: 'Buka Multimedia Hub', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } } },
             { type: 'separator' },
             { label: 'Keluar', click: () => { app.isQuiting = true; app.quit(); } }
         ]);
+        
         tray.setToolTip('JTN Multimedia Hub');
         tray.setContextMenu(contextMenu);
         tray.on('double-click', () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } });
-    } else {
-        if (tray) { tray.destroy(); tray = null; }
+        
+    } catch (error) {
+        console.log("Gagal membuat Tray Icon:", error);
     }
 }
 
@@ -595,6 +648,11 @@ ipcMain.on('open-settings-window', () => {
     settingsWin.once('ready-to-show', () => { settingsWin.show(); });
 });
 
+// PENTING UNTUK WINDOWS: Menyatukan semua jendela ke dalam 1 icon Taskbar
+if (process.platform === 'win32') {
+    app.setAppUserModelId("id.web.hkbpjtn.multimediahub");
+}
+
 app.whenReady().then(async () => {
     app.userAgentFallback = app.userAgentFallback + ' JTN-Electron/1.0';
     
@@ -608,6 +666,12 @@ app.whenReady().then(async () => {
     if (isUpdating) return; 
 
     createWindow();
+
+    // --- 2. TANGKAP DEEP LINK SAAT APP PERTAMA KALI DIBUKA (WINDOWS) ---
+    const deepLinkUrl = process.argv.find(arg => arg.startsWith('jtn://'));
+    if (deepLinkUrl) {
+        setTimeout(() => handleDeepLink(deepLinkUrl), 1500); 
+    }
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) { createWindow(); }
@@ -624,12 +688,44 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
     app.quit();
 } else {
-    app.on('second-instance', () => {
+    // --- 3. TANGKAP DEEP LINK SAAT APP SUDAH BERJALAN ---
+    app.on('second-instance', (event, commandLine, workingDirectory) => {
         if (mainWindow) {
             if (mainWindow.isMinimized()) mainWindow.restore();
             mainWindow.focus();
+            
+            // Cari argumen yang berawalan jtn://
+            const deepLinkUrl = commandLine.find(arg => arg.startsWith('jtn://'));
+            if (deepLinkUrl) handleDeepLink(deepLinkUrl);
         }
     });
+    
+    // --- 4. TANGKAP DEEP LINK UNTUK MAC OS ---
+    app.on('open-url', (event, url) => {
+        event.preventDefault();
+        if (mainWindow) {
+            handleDeepLink(url);
+        } else {
+            app.whenReady().then(() => {
+                setTimeout(() => handleDeepLink(url), 1500);
+            });
+        }
+    });
+}
+
+// --- 5. FUNGSI EKSEKUSI PINDAH HALAMAN (DEEP LINK) ---
+function handleDeepLink(url) {
+    // Buang 'jtn://' dari url (Contoh: jtn://user/template -> user/template)
+    let targetPath = url.replace('jtn://', '');
+    if (targetPath.endsWith('/')) targetPath = targetPath.slice(0, -1);
+
+    // Gabungkan dengan URL aslimu
+    const finalUrl = `https://absen.hkbpjtn.web.id/multimedia/${targetPath}`;
+
+    // Pindah halaman
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.loadURL(finalUrl);
+    }
 }
 
 // ========================================================
@@ -655,17 +751,18 @@ app.whenReady().then(() => {
                     if (isPopup && !sourceWindow.isDestroyed()) { sourceWindow.hide(); }
 
                     dlWin = new BrowserWindow({
-                        width: 450, height: 160, resizable: false, maximizable: false, minimizable: false,
-                        parent: mainWindow, modal: false, titleBarStyle: 'hidden', backgroundMaterial: 'mica',
+                        width: 450, 
+                        height: 200, // <--- UBAH DARI 180 JADI 200 DI SINI
+                        resizable: false, maximizable: false, minimizable: true,
+                        title: "File Downloader - JTN Multimedia Hub",
+                        backgroundMaterial: 'mica',
+                        icon: path.join(__dirname, 'assets/picture/favicon.png'),
                         webPreferences: { preload: path.join(__dirname, 'preload_dl_ui.js'), contextIsolation: true, nodeIntegration: false }
                     });
                     
+                    dlWin.removeMenu(); // Kunci ganda agar menu benar-benar musnah
                     dlWin.loadFile('download-ui.html');
                     activeDownloads.set(dlWin.id, item); 
-
-                    dlWin.webContents.on('did-finish-load', () => {
-                        if (isAppDarkGlobal) { dlWin.webContents.executeJavaScript(`document.body.classList.add('dark-mode');`).catch(e => console.log(e)); }
-                    });
 
                     dlWin.on('closed', () => {
                         if (item && item.getState() === 'progressing') item.cancel();
@@ -673,12 +770,33 @@ app.whenReady().then(() => {
                     });
                 }
 
-                const currentBytes = item.getReceivedBytes(); const totalBytes = item.getTotalBytes(); const currentTime = Date.now();
+                const currentBytes = item.getReceivedBytes(); 
+                const totalBytes = item.getTotalBytes(); 
+                const currentTime = Date.now();
                 const timeDiff = (currentTime - lastTime) / 1000; 
-                let speed = 0; if (timeDiff > 0) speed = (currentBytes - lastBytes) / timeDiff;
+                
+                let speed = 0; 
+                if (timeDiff > 0) speed = (currentBytes - lastBytes) / timeDiff;
+
+                // 1. HITUNG ESTIMASI WAKTU (ETA)
+                let eta = 0;
+                if (speed > 0 && totalBytes > 0) {
+                    eta = Math.round((totalBytes - currentBytes) / speed);
+                }
+
+                // 2. PROGRESS BAR DI TASKBAR (0.0 s/d 1.0)
+                const progress = totalBytes > 0 ? (currentBytes / totalBytes) : -1;
 
                 if (dlWin && !dlWin.isDestroyed()) {
-                    dlWin.webContents.send('download-progress', { filename: item.getFilename(), received: currentBytes, total: totalBytes, speed: speed });
+                    dlWin.setProgressBar(progress); // Menampilkan progress di Taskbar
+                    
+                    dlWin.webContents.send('download-progress', { 
+                        filename: item.getFilename(), 
+                        received: currentBytes, 
+                        total: totalBytes, 
+                        speed: speed,
+                        eta: eta // Mengirimkan data ETA ke UI
+                    });
                 }
 
                 lastBytes = currentBytes; lastTime = currentTime;
@@ -687,7 +805,18 @@ app.whenReady().then(() => {
 
         item.once('done', (event, state) => {
             if (uiCreated && dlWin && !dlWin.isDestroyed()) {
+                // Bersihkan progress bar di taskbar
+                dlWin.setProgressBar(-1);
+
                 if (state === 'completed') {
+                    // 3. PAKSA JENDELA MUNCUL (POPUP) SAAT SELESAI
+                    if (dlWin.isMinimized()) dlWin.restore();
+                    dlWin.show();
+                    dlWin.focus();
+                    dlWin.setAlwaysOnTop(true); // Pastikan benar-benar di depan
+                    dlWin.setAlwaysOnTop(false); // Kembalikan normal setelah muncul
+                    dlWin.flashFrame(true); // Membuat icon di taskbar berkedip
+
                     dlWin.webContents.send('download-complete', { status: 'success', path: item.getSavePath() });
                 } else {
                     dlWin.close();
@@ -786,6 +915,7 @@ ipcMain.on('start-presentation', (event, monitorId) => {
         backgroundMaterial: 'mica', 
         backgroundColor: '#00000000', 
         show: false, 
+        icon: path.join(__dirname, 'assets/picture/favicon.png'),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,

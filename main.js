@@ -261,6 +261,30 @@ async function createWindow() {
         mainWindow = null;
         if (projectorWindow && !projectorWindow.isDestroyed()) projectorWindow.close();
     });
+
+    // ==========================================
+    // SHORTCUT RAHASIA: CLEAR CACHE (Ctrl + Shift + Delete)
+    // ==========================================
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+        if (input.control && input.shift && input.key.toLowerCase() === 'delete') {
+            event.preventDefault();
+            
+            // Bersihkan cache dari memori Chromium
+            session.defaultSession.clearCache().then(() => {
+                // Tampilkan notifikasi ke layar
+                const { dialog } = require('electron');
+                dialog.showMessageBox(mainWindow, {
+                    type: 'info',
+                    title: 'Pembersihan Selesai',
+                    message: 'Cache aplikasi berhasil dibersihkan! Halaman akan dimuat ulang agar lebih ringan.',
+                    buttons: ['OK']
+                }).then(() => {
+                    // Refresh halaman otomatis
+                    mainWindow.reload();
+                });
+            });
+        }
+    });
 }
 
 function openPDFWindow(pdfUrl, title) {
@@ -758,9 +782,10 @@ app.whenReady().then(() => {
                     uiCreated = true;
                     if (isPopup && !sourceWindow.isDestroyed()) { sourceWindow.hide(); }
 
+                    // Hapus parameter parent agar taskbar kembali terpisah!
                     dlWin = new BrowserWindow({
                         width: 450, 
-                        height: 200, // <--- UBAH DARI 180 JADI 200 DI SINI
+                        height: 220, 
                         resizable: false, maximizable: false, minimizable: true,
                         title: "File Downloader - JTN Multimedia Hub",
                         backgroundMaterial: 'mica',
@@ -768,13 +793,18 @@ app.whenReady().then(() => {
                         webPreferences: { preload: path.join(__dirname, 'preload_dl_ui.js'), contextIsolation: true, nodeIntegration: false }
                     });
                     
-                    dlWin.removeMenu(); // Kunci ganda agar menu benar-benar musnah
+                    dlWin.removeMenu(); 
                     dlWin.loadFile('download-ui.html');
                     activeDownloads.set(dlWin.id, item); 
 
                     dlWin.on('closed', () => {
                         if (item && item.getState() === 'progressing') item.cancel();
                         activeDownloads.delete(dlWin.id);
+                    });
+
+                    // Pastikan saat jendela ini diklik, dia yang paling depan (bukan mainWindow)
+                    dlWin.on('focus', () => {
+                        dlWin.moveTop();
                     });
                 }
 
@@ -802,6 +832,7 @@ app.whenReady().then(() => {
                         filename: item.getFilename(), 
                         received: currentBytes, 
                         total: totalBytes, 
+                        isIndeterminate: totalBytes === 0,
                         speed: speed,
                         eta: eta // Mengirimkan data ETA ke UI
                     });
@@ -817,13 +848,23 @@ app.whenReady().then(() => {
                 dlWin.setProgressBar(-1);
 
                 if (state === 'completed') {
-                    // 3. PAKSA JENDELA MUNCUL (POPUP) SAAT SELESAI
                     if (dlWin.isMinimized()) dlWin.restore();
+
+                    // --- JURUS FOKUS TEPAT SASARAN ---
+                    // Paksa dlWin ke depan, fokuskan, dan beri efek kedip di taskbar
+                    dlWin.setAlwaysOnTop(true, 'screen-saver');
                     dlWin.show();
-                    dlWin.focus();
-                    dlWin.setAlwaysOnTop(true); // Pastikan benar-benar di depan
-                    dlWin.setAlwaysOnTop(false); // Kembalikan normal setelah muncul
-                    dlWin.flashFrame(true); // Membuat icon di taskbar berkedip
+                    dlWin.focus(); // Cukup fokuskan jendela ini saja
+                    dlWin.flashFrame(true);
+
+                    // Kembalikan ke normal setelah 1 detik agar tidak mengganggu aplikasi lain terus-terusan
+                    setTimeout(() => {
+                        if (dlWin && !dlWin.isDestroyed()) {
+                            dlWin.setAlwaysOnTop(false);
+                            dlWin.flashFrame(false);
+                        }
+                    }, 1000);
+                    // ----------------------------------
 
                     dlWin.webContents.send('download-complete', { status: 'success', path: item.getSavePath() });
                 } else {

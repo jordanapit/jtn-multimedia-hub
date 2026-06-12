@@ -60,6 +60,20 @@
             from { transform: translateX(-100px); }
             to { transform: translateX(450px); }
         }
+
+        .progress-bar-fill.indeterminate {
+            width: 35% !important;
+            animation: indeterminate 1.6s infinite ease-in-out;
+        }
+
+        .progress-bar-fill.indeterminate::after {
+            display: none;
+        }
+
+        @keyframes indeterminate {
+            0%   { transform: translateX(-100%); }
+            100% { transform: translateX(390px); }
+        }
         
         .details { display: flex; justify-content: space-between; font-size: 12px; color: #555; font-weight: 400; align-items: center; }
         .speed-eta { display: flex; align-items: center; gap: 5px; }
@@ -153,7 +167,7 @@
             <div class="size" id="size">0 B / 0 B</div>
         </div>
         <div class="footer-actions">
-            <button class="btn-win11" id="btn-main-action">Batal</button>
+            <button class="btn-win11 btn-open" id="btn-main-action">Batal</button>
         </div>
     </div>
 
@@ -168,15 +182,30 @@
 
         window.api.onProgress((event, data) => {
             document.getElementById('filename').innerText = data.filename;
-            let percent = (data.total > 0) ? (data.received / data.total) * 100 : 0;
-            document.getElementById('progress-fill').style.width = percent + '%';
+
+            const fill = document.getElementById('progress-fill');
+
+            if (data.isIndeterminate) {
+                fill.classList.add('indeterminate');
+                fill.style.width = '';
+                fill.style.transition = 'none';
+                document.getElementById('size').innerText = formatBytes(data.received) + ' / ?';
+            } else {
+                fill.classList.remove('indeterminate');
+                fill.style.transition = 'width 0.3s ease-out';
+                let percent = (data.received / data.total) * 100;
+                fill.style.width = percent + '%';
+                document.getElementById('size').innerText = formatBytes(data.received) + ' / ' + formatBytes(data.total);
+            }
+
             document.getElementById('speed').innerText = formatBytes(data.speed) + '/s';
-            document.getElementById('size').innerText = formatBytes(data.received) + ' / ' + formatBytes(data.total);
 
             const etaElement = document.getElementById('eta');
-            if (data.eta && data.eta > 0 && data.received < data.total) {
+            if (!data.isIndeterminate && data.eta && data.eta > 0 && data.received < data.total) {
                 etaElement.innerText = " • Sisa waktu: " + formatTime(data.eta);
-            } else { etaElement.innerText = ""; }
+            } else {
+                etaElement.innerText = "";
+            }
         });
 
         window.api.onComplete((event, data) => {
@@ -184,6 +213,8 @@
                 downloadedFilePath = data.path;
                 document.getElementById('filename').innerText = "Unduhan Selesai!";
                 const fill = document.getElementById('progress-fill');
+                fill.classList.remove('indeterminate');
+                fill.style.transition = 'width 0.3s ease-out';
                 fill.style.width = '100%';
                 fill.style.backgroundColor = '#1cc88a'; 
                 document.getElementById('speed').innerText = "";

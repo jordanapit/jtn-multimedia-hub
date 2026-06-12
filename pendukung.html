@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slide Overlay - JTN Multimedia Hub</title>
+    <title>Bahan Pendukung - JTN Multimedia Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -55,7 +55,7 @@
             margin-left: 10px; 
             font-weight: 400; 
             opacity: 0.8; 
-            font-family: 'Segoe UI', system-ui, sans-serif; /* TAMBAHKAN BARIS INI */
+            font-family: 'Segoe UI', system-ui, sans-serif; 
         }
 
         .content-body { flex: 1; background: var(--bg-content); border-top-left-radius: 20px; overflow: hidden; display: flex; flex-direction: column; position: relative; z-index: 20; box-shadow: var(--content-shadow); transition: background 0.3s ease, box-shadow 0.3s ease; }
@@ -109,30 +109,16 @@
             -webkit-app-region: no-drag;
             cursor: pointer;
             border-radius: 8px;
-            overflow: hidden; /* Penting agar kilapnya tidak bocor keluar kotak */
+            overflow: hidden; 
         }
-        .logo-wrapper .app-logo {
-            width: 100%; 
-            height: 100%; 
-            object-fit: contain; 
-            margin-bottom: 0; 
-        }
+        .logo-wrapper .app-logo { width: 100%; height: 100%; object-fit: contain; margin-bottom: 0; }
         .logo-wrapper::after {
-            content: "";
-            position: absolute;
-            top: 0; 
-            left: -100%; /* Mulai dari luar kiri */
-            width: 50%; 
-            height: 100%;
+            content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
             background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
-            transform: skewX(-25deg); /* Dimiringkan biar keren */
+            transform: skewX(-25deg); 
         }
-        .logo-wrapper:hover::after {
-            animation: shine 0.6s ease forwards;
-        }
-        @keyframes shine {
-            100% { left: 200%; } /* Bergerak cepat ke kanan */
-        }
+        .logo-wrapper:hover::after { animation: shine 0.6s ease forwards; }
+        @keyframes shine { 100% { left: 200%; } }
 
         /* CSS UNTUK TOGGLE SWITCH */
         .custom-switch { position: relative; display: inline-block; width: 44px; height: 24px; margin: 0; }
@@ -143,13 +129,10 @@
         .custom-switch input:checked + .slider { background-color: #10b981; }
         .custom-switch input:checked + .slider:before { transform: translateX(20px); }
 
-        /* Kursor panah standar untuk semua link */
-        a, i, img, div, select, label, button, span, input {
-            cursor: default !important;
-        }
+        a, i, img, div, select, label, button, span, input { cursor: default !important; }
 
         /* --- EFEK KLIK & CONTEXT MENU --- */
-        .file-table tbody tr { cursor: default; } /* Kursor panah biasa */
+        .file-table tbody tr { cursor: default; } 
         .file-table tbody tr.selected-row { background: var(--row-hover); outline: 1px solid var(--primary); }
         
         .custom-context-menu {
@@ -165,20 +148,19 @@
         /* --- TOAST NOTIFICATION MICA --- */
         .jtn-toast {
             visibility: hidden; min-width: 220px; text-align: center;
-            background-color: rgba(255, 255, 255, 0.6); /* Mica Light */
+            background-color: rgba(255, 255, 255, 0.6); 
             backdrop-filter: blur(12px) saturate(150%); -webkit-backdrop-filter: blur(12px) saturate(150%);
             color: #1a1a1a; font-size: 13px; font-weight: 600;
-            border-radius: 50px; /* Bentuk Kapsul */
-            padding: 10px 20px; position: fixed; z-index: 10001;
+            border-radius: 50px; padding: 10px 20px; position: fixed; z-index: 10001;
             left: 50%; bottom: 20px; transform: translateX(-50%);
             box-shadow: 0 4px 20px rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.05);
             opacity: 0; transition: opacity 0.3s ease, bottom 0.3s ease, visibility 0.3s;
             cursor: default; pointer-events: none;
         }
-        .jtn-toast.show { visibility: visible; opacity: 1; bottom: 40px; } /* Animasi naik sedikit saat muncul */
+        .jtn-toast.show { visibility: visible; opacity: 1; bottom: 40px; } 
         
         body.dark-mode .jtn-toast {
-            background-color: rgba(30, 33, 40, 0.6); /* Mica Dark */
+            background-color: rgba(30, 33, 40, 0.6); 
             color: #ffffff; border: 1px solid rgba(255,255,255,0.1);
             box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
@@ -229,11 +211,11 @@
             <div class="title-bar"><div class="app-title">Bahan Pelayanan - JTN Multimedia Hub</div></div>
             <div class="content-body">
                 <div class="scroll-area">
-                    <h1>Slide Overlay</h1>
+                    <h1>Bahan Pendukung</h1>
                     <div class="table-container">
                         <table class="file-table">
                             <thead><tr><th width="60%">Nama File</th><th width="25%">Jenis</th><th width="15%" class="text-center">Ukuran</th></tr></thead>
-                            <tbody id="tbody-overlay"></tbody>
+                            <tbody id="tbody-pendukung"></tbody>
                         </table>
                     </div>
                 </div>
@@ -244,7 +226,9 @@
     <div id="jtnToast" class="jtn-toast">Link berhasil disalin!</div>
 
     <script>
-        const apiUrl = 'https://absen.hkbpjtn.web.id/multimedia/api/get_overlay.php';
+        // Pakai Google Script URL untuk ambil data Drive
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbw0YAIHjhh_3e36pj4JN958yRV9XfuebErz4JF45L8QgFxE_JtdCOiCGY-eor-kmi38Sw/exec';
+        const folderId = '1SD9PI2riwj4AJuzoQaz462PpHOyeY5z3';
 
         async function applyTheme(themeSetting) {
             let isDark = false;
@@ -305,25 +289,59 @@
         }
         function closeJtnModal() { document.getElementById('jtnDownloadModal').classList.remove('show'); }
 
-        async function fetchOverlay() {
-            const tbody = document.getElementById('tbody-overlay');
+        async function fetchPendukung() {
+            const tbody = document.getElementById('tbody-pendukung');
             try {
-                const res = await fetch(apiUrl);
+                const res = await fetch(scriptUrl + '?id=' + folderId);
                 const data = await res.json();
+                
                 if (!data || data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="4" class="text-center" style="padding:20px; color:var(--text-sub) !important;">Tidak ada file.</td></tr>';
                 } else {
                     let html = '';
                     data.forEach(f => {
-                        html += `<tr data-url="${f.path}" data-name="${f.name}">
-                                    <td><div class="col-name"><i class="fa-regular fa-file-powerpoint file-icon" style="color:#d04423"></i><span class="file-name-text">${f.name}</span></div></td>
-                                    <td>${f.type || 'PowerPoint'}</td>
-                                    <td class="text-center">${f.size || '-'}</td>
+                        let sizeStr = '-';
+                        if (f.size) {
+                            sizeStr = f.size >= 1048576 ? (f.size / 1048576).toFixed(1) + ' MB' : (f.size / 1024).toFixed(1) + ' KB';
+                        }
+                        
+                        // Deteksi Pintar Jenis File
+                        let ext = f.name.split('.').pop().toLowerCase();
+                        let typeName = 'File';
+                        let iconClass = 'fa-file';
+                        let iconColor = '#888';
+
+                        if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) {
+                            typeName = 'Image'; iconClass = 'fa-file-image'; iconColor = '#0891b2';
+                        } else if (['mov', 'mp4', 'mkv', 'webm'].includes(ext)) {
+                            typeName = 'Video'; iconClass = 'fa-file-video'; iconColor = '#3b82f6';
+                        } else if (['ppt', 'pptx'].includes(ext)) {
+                            typeName = 'PowerPoint'; iconClass = 'fa-file-powerpoint'; iconColor = '#d04423';
+                        } else if (['zip', 'rar'].includes(ext)) {
+                            typeName = 'Archive'; iconClass = 'fa-file-zipper'; iconColor = '#fbbf24';
+                        } else if (['pdf'].includes(ext)) {
+                            typeName = 'PDF'; iconClass = 'fa-file-pdf'; iconColor = '#e11d48';
+                        } else if (['doc', 'docx'].includes(ext)) {
+                            typeName = 'Word'; iconClass = 'fa-file-word'; iconColor = '#2b579a';
+                        } else if (['xls', 'xlsx'].includes(ext)) {
+                            typeName = 'Excel'; iconClass = 'fa-file-excel'; iconColor = '#217346';
+                        }
+                        
+                        html += `<tr data-url="${f.downloadUrl}" data-name="${f.name}">
+                                    <td>
+                                        <div class="col-name">
+                                            <i class="fa-regular ${iconClass} file-icon" style="color:${iconColor}"></i>
+                                            <span class="file-name-text">${f.name}</span>
+                                        </div>
+                                    </td>
+                                    <td>${typeName}</td>
+                                    <td class="text-center">${sizeStr}</td>
                                 </tr>`;
                     });
                     tbody.innerHTML = html;
                 }
             } catch (e) { 
+                console.error(e);
                 tbody.innerHTML = '<tr><td colspan="4" class="text-center">Gagal memuat.</td></tr>'; 
             } finally { 
                 const loader = document.getElementById('page-loader'); 
@@ -344,15 +362,13 @@
 
                 } catch (e) { console.error("Theme init error:", e); }
             }
-            fetchOverlay();
+            fetchPendukung();
         });
 
         function goHome() { window.location.href = 'login.html'; }
         async function openWA() { if (window.electronAPI) window.electronAPI.openExternal("whatsapp://"); }
-
         async function openAbout() {
             if (window.electronAPI && window.electronAPI.openAboutWindow) {
-                // Cek versi aplikasi (opsional, tapi disarankan sesuai request awal)
                 const currentVersion = await window.electronAPI.getAppVersion();
                 const requiredVersion = '1.2.260407';
 
@@ -380,7 +396,6 @@
                     selectedFileUrl = tr.getAttribute('data-url');
                     selectedFileName = tr.getAttribute('data-name');
                 } else {
-                    // Klik di luar tabel akan menghilangkan sorotan
                     document.querySelectorAll('.file-table tbody tr').forEach(el => el.classList.remove('selected-row'));
                 }
             });
@@ -400,9 +415,9 @@
             scrollArea.addEventListener('contextmenu', (e) => {
                 const tr = e.target.closest('.file-table tbody tr');
                 if (tr) {
-                    e.preventDefault(); // Matikan klik kanan bawaan windows
+                    e.preventDefault(); 
                     document.querySelectorAll('.file-table tbody tr').forEach(el => el.classList.remove('selected-row'));
-                    tr.classList.add('selected-row'); // Sorot otomatis baris yang di-klik kanan
+                    tr.classList.add('selected-row'); 
                     selectedFileUrl = tr.getAttribute('data-url');
                     selectedFileName = tr.getAttribute('data-name');
 
@@ -424,7 +439,6 @@
             document.getElementById('ctxDownload').addEventListener('click', () => {
                 document.getElementById('fileContextMenu').style.display = 'none';
                 if (selectedFileUrl) {
-                    // Memicu modal yang sama dengan double-click
                     document.getElementById('confirmFileName').innerHTML = `Apakah anda yakin ingin mengunduh file <br><strong style="color:var(--primary)">${selectedFileName}</strong>?`;
                     document.getElementById('confirmDownloadModal').classList.add('show');
                 }
@@ -453,7 +467,7 @@
 
         function jalankanUnduhan() {
             if (selectedFileUrl) {
-                showJtnModal(); // Munculkan modal "Memproses Unduhan" bawaanmu
+                showJtnModal(); 
                 window.open(selectedFileUrl, '_blank');
             }
         }
@@ -464,7 +478,7 @@
             toast.classList.add('show');
             setTimeout(() => {
                 toast.classList.remove('show');
-            }, 3000); // Hilang otomatis setelah 3 detik
+            }, 3000); 
         }
     </script>
 </body>

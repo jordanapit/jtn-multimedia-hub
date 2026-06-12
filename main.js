@@ -691,7 +691,15 @@ if (!gotTheLock) {
     // --- 3. TANGKAP DEEP LINK SAAT APP SUDAH BERJALAN ---
     app.on('second-instance', (event, commandLine, workingDirectory) => {
         if (mainWindow) {
-            if (mainWindow.isMinimized()) mainWindow.restore();
+            // 1. Tampilkan jendela jika sedang sembunyi di Tray
+            if (!mainWindow.isVisible()) {
+                mainWindow.show();
+            }
+            // 2. Restore jika jendelanya di-minimize
+            if (mainWindow.isMinimized()) {
+                mainWindow.restore();
+            }
+            // 3. Tarik ke depan (fokus)
             mainWindow.focus();
             
             // Cari argumen yang berawalan jtn://

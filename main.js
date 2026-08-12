@@ -163,12 +163,42 @@ async function createWindow() {
     });
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        // --- 1. JURUS DETEKSI DAN SEDOT PDF ---
         if (url.toLowerCase().endsWith('.pdf') || url.includes('.pdf?')) {
             const fileName = path.basename(url).split('?')[0];
-            mainWindow.loadFile(path.join(__dirname, 'pdf-viewer.html'), { 
-                query: { file: url, title: decodeURIComponent(fileName) } 
-            });
-            mainWindow.setTitleBarOverlay({ color: '#323639', symbolColor: '#ffffff', height: 48 });
+            const decodedFileName = decodeURIComponent(fileName);
+
+            if (url.startsWith('http')) {
+                // Sedot file jarak jauh ke folder Temp Windows
+                const tempPath = path.join(app.getPath('temp'), decodedFileName);
+                const request = require('electron').net.request(url);
+                
+                request.on('response', (response) => {
+                    const fileStream = fs.createWriteStream(tempPath);
+                    response.on('data', (chunk) => { fileStream.write(chunk); });
+                    
+                    response.on('end', () => {
+                        fileStream.end();
+                        if (mainWindow && !mainWindow.isDestroyed()) {
+                            // Buka dengan wujud file lokal (Chromium pasti mengizinkan)
+                            const localFileUrl = "file:///" + tempPath.replace(/\\/g, '/');
+                            mainWindow.loadFile(path.join(__dirname, 'pdf-viewer.html'), { 
+                                query: { file: localFileUrl, title: decodedFileName } 
+                            });
+                            mainWindow.setTitleBarOverlay({ color: '#323639', symbolColor: '#ffffff', height: 48 });
+                        }
+                    });
+                });
+                
+                request.on('error', (err) => console.log("Gagal menyedot PDF:", err));
+                request.end();
+            } else {
+                // Langsung buka jika sudah berwujud file:///
+                mainWindow.loadFile(path.join(__dirname, 'pdf-viewer.html'), { 
+                    query: { file: url, title: decodedFileName } 
+                });
+                mainWindow.setTitleBarOverlay({ color: '#323639', symbolColor: '#ffffff', height: 48 });
+            }
             return { action: 'deny' }; 
         }
 
@@ -549,8 +579,11 @@ ipcMain.on('toggle-startup', (event, enable) => {
     app.setLoginItemSettings({ 
         openAtLogin: enable, 
         path: app.getPath('exe'),
-        args: ['--startup'] // Flag penting
+        args: ['--startup'] 
     });
+    // Simpan ke config lokal agar UI selalu ingat
+    currentAppConfigs.openAtLogin = enable;
+    saveAppConfigs();
 });
 ipcMain.handle('get-app-version', () => app.getVersion());
 
@@ -591,6 +624,7 @@ function startOSThemeRadar() {
 const appConfigsPath = path.join(app.getPath('userData'), 'jtn_configs.json');
 let currentAppConfigs = {
     runInBackground: false,
+    openAtLogin: false, // <-- Tambahkan ini
     projTheme: 'dark',
     projFont: "'Sora', sans-serif",
     projSize: '5.5vw'
@@ -658,18 +692,38 @@ function manageTray() {
     }
 }
 
-// WINDOW PENGATURAN
+// WINDOW PENGATURAN [source: 1]
 ipcMain.on('open-settings-window', () => {
     let settingsWin = new BrowserWindow({
-        width: 550, height: 400, parent: mainWindow, modal: true, show: false, 
-        resizable: false, maximizable: false, 
-        minimizable: false, // <--- TAMBAHKAN BARIS INI
-        titleBarStyle: 'hidden', titleBarOverlay: { color: 'rgba(0,0,0,0)', height: 35 },
-        backgroundMaterial: 'mica', icon: path.join(__dirname, 'assets/picture/favicon.png'),
+        width: 550, height: 400, 
+        parent: mainWindow, 
+        modal: true, 
+        show: false, 
+        resizable: false, 
+        maximizable: false, 
+        minimizable: false, 
+        titleBarStyle: 'hidden', 
+        titleBarOverlay: { color: 'rgba(0,0,0,0)', height: 35 },
+        backgroundMaterial: 'mica', 
+        icon: path.join(__dirname, 'assets/picture/favicon.png'),
         webPreferences: { nodeIntegration: false, contextIsolation: true, preload: path.join(__dirname, 'preload.js') }
     });
+    
     settingsWin.loadFile('settings.html');
-    settingsWin.once('ready-to-show', () => { settingsWin.show(); });
+    
+    settingsWin.once('ready-to-show', () => { 
+        settingsWin.show(); 
+    });
+
+    // --- TAMBAHKAN PENGAWAL INI AGAR FOKUS KEMBALI KE MAIN WINDOW ---
+    settingsWin.on('closed', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.show();
+            mainWindow.focus(); // Tarik paksa fokus kembali ke JTN Multimedia Hub
+        }
+        settingsWin = null;
+    });
 });
 
 // PENTING UNTUK WINDOWS: Menyatukan semua jendela ke dalam 1 icon Taskbar

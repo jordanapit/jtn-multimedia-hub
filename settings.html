@@ -3,82 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pengaturan</title>
+    <title>Pengaturan - JTN Multimedia Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: transparent;
             --text-main: #1a1a1a;
             --text-sub: #555555;
-            --box-bg: rgba(255, 255, 255, 0.5);
-            --box-border: rgba(0, 0, 0, 0.1);
+            --box-bg: rgba(0, 0, 0, 0.05);
+            --box-border: rgba(0, 0, 0, 0.08);
             --btn-bg: #f3f3f3;
-            --btn-border: rgba(0, 0, 0, 0.1);
-            --active-tab: #0078D4;
+            --active-tab-bg: rgba(0, 0, 0, 0.04);
+            --active-tab-color: #0078D4;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --card-border: rgba(0, 0, 0, 0.08);
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
         }
 
         body.dark-mode {
             --bg-color: #21242b;
             --text-main: #ffffff;
-            --text-sub: #cccccc;
-            --box-bg: rgba(0, 0, 0, 0.3);
-            --box-border: rgba(255, 255, 255, 0.1);
+            --text-sub: #aaaaaa;
+            --box-bg: rgba(255, 255, 255, 0.05);
+            --box-border: rgba(255, 255, 255, 0.08);
             --btn-bg: rgba(255, 255, 255, 0.1);
-            --btn-border: rgba(255, 255, 255, 0.1);
-            --active-tab: #60A5FA;
+            --active-tab-bg: rgba(255, 255, 255, 0.08);
+            --active-tab-color: #60CDFF;
+            --card-bg: rgba(30, 33, 40, 0.85);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
         * { box-sizing: border-box; }
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-color); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg-color); 
+            color: var(--text-main); 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            user-select: none; 
+        }
 
         /* TITLEBAR */
-        .titlebar { height: 35px; width: 100%; -webkit-app-region: drag; flex-shrink: 0; display: flex; align-items: center; padding-left: 15px; }
+        .titlebar { 
+            height: 35px; 
+            width: 100%; 
+            -webkit-app-region: drag; 
+            flex-shrink: 0; 
+            display: flex; 
+            align-items: center; 
+            padding-left: 15px; 
+        }
         .titlebar-icon { width: 16px; height: 16px; margin-right: 10px; object-fit: contain; pointer-events: none; }
         .titlebar-text { font-size: 12px; font-weight: 400; color: var(--text-main); }
 
         /* LAYOUT MAIN */
-        .main-container { display: flex; flex: 1; min-height: 0; }
+        .main-container { 
+            display: flex; 
+            flex: 1; 
+            min-height: 0; 
+            padding: 5px 15px 15px 15px; 
+            gap: 12px; 
+        }
         
-        /* SIDEBAR TABS */
-        .tabs { width: 150px; display: flex; flex-direction: column; padding: 10px; border-right: 1px solid var(--box-border); }
-        .tab-btn { background: transparent; border: none; text-align: left; padding: 10px 15px; border-radius: 6px; cursor: default; color: var(--text-main); font-family: 'Segoe UI', sans-serif; font-size: 14px; margin-bottom: 5px; transition: 0.2s; outline: none; }
+        /* SIDEBAR TABS (TANPA SEPARATOR, DENGAN PILL LINE) */
+        .tabs { 
+            width: 140px; 
+            display: flex; 
+            flex-direction: column; 
+            padding: 5px 0;
+            border-right: none; /* Separator dihapus */
+        }
+        .tab-btn { 
+            position: relative;
+            background: transparent; 
+            border: none; 
+            text-align: left; 
+            padding: 10px 14px; 
+            border-radius: 6px; 
+            cursor: default; 
+            color: var(--text-main); 
+            font-family: 'Segoe UI', sans-serif; 
+            font-size: 13.5px; 
+            margin-bottom: 4px; 
+            transition: all 0.15s ease; 
+            outline: none; 
+            -webkit-app-region: no-drag; 
+        }
         .tab-btn:hover { background: var(--box-bg); }
-        .tab-btn.active { background: var(--box-bg); font-weight: 600; color: var(--active-tab); }
+        
+        /* STATE AKTIF WINUI 3 (GARIS BIRU / SELECTION PILL DI KIRI) */
+        .tab-btn.active { 
+            background: var(--active-tab-bg); 
+            font-weight: 600; 
+            color: var(--text-main); 
+        }
+        .tab-btn.active::before {
+            content: '';
+            position: absolute;
+            left: 3px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 16px;
+            background-color: var(--active-tab-color);
+            border-radius: 4px;
+        }
 
-        /* CONTENT AREA */
-        .content-area { flex: 1; padding: 20px 30px; overflow-y: auto; }
-        .content-area::-webkit-scrollbar { width: 6px; }
-        .content-area::-webkit-scrollbar-track { background: transparent; }
-        .content-area::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.4); border-radius: 10px; }
-        .tab-pane { display: none; animation: fadeIn 0.2s ease; }
+        /* CONTENT AREA (WINUI 3 CARD CONTAINER) */
+        .content-card { 
+            flex: 1; 
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            padding: 20px 24px; 
+            overflow-y: auto; 
+        }
+        .content-card::-webkit-scrollbar { width: 6px; }
+        .content-card::-webkit-scrollbar-track { background: transparent; }
+        .content-card::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.3); border-radius: 10px; }
+        
+        .tab-pane { display: none; animation: fadeIn 0.18s ease; }
         .tab-pane.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(4px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
 
         /* SETTINGS ROWS */
-        .setting-group { margin-bottom: 20px; }
-        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 8px 0; }
-        .setting-text-main { font-weight: 600; font-size: 14px; }
-        .setting-text-sub { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
+        .setting-group { margin-bottom: 10px; }
+        .setting-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 14px; 
+            padding: 6px 0; 
+        }
+        .setting-text-main { font-weight: 600; font-size: 13.5px; }
+        .setting-text-sub { font-size: 12px; color: var(--text-sub); margin-top: 3px; }
         
         /* TOGGLE SWITCH */
-        .custom-switch { position: relative; display: inline-block; width: 40px; height: 20px; margin: 0; }
+        .custom-switch { position: relative; display: inline-block; width: 40px; height: 20px; margin: 0; flex-shrink: 0; }
         .custom-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: default; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--box-border); transition: .4s; border-radius: 20px; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #0078D4; }
+        .slider { position: absolute; cursor: default; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--box-border); transition: .3s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--active-tab-color); }
         input:checked + .slider:before { transform: translateX(20px); }
         .hidden { display: none !important; }
 
-        /* =========================================
-           WINUI 3 COMBOBOX CUSTOM STYLE
-           ========================================= */
-        .jtn-select { display: none !important; } /* Sembunyikan select bawaan HTML */
+        /* WINUI 3 COMBOBOX CUSTOM STYLE */
+        .jtn-select { display: none !important; }
 
         .winui-select-wrapper {
             position: relative;
             width: 170px;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 13.5px;
+            font-size: 13px;
             user-select: none;
         }
 
@@ -87,8 +172,8 @@
             justify-content: space-between;
             align-items: center;
             background: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.25);
             padding: 5px 12px;
             border-radius: 5px;
             cursor: default;
@@ -108,8 +193,9 @@
 
         .winui-select-box.open {
             background: #ffffff;
-            border-bottom-color: #0078D4; /* Aksen biru saat terbuka */
-            padding-bottom: 4px; border-bottom-width: 2px;
+            border-bottom-color: var(--active-tab-color);
+            padding-bottom: 4px; 
+            border-bottom-width: 2px;
         }
 
         .winui-select-text {
@@ -139,7 +225,7 @@
             z-index: 100000;
             display: none;
             flex-direction: column;
-            max-height: 250px;
+            max-height: 200px;
             overflow-y: auto;
         }
 
@@ -148,7 +234,7 @@
         .winui-select-dropdown::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
 
         .winui-option {
-            padding: 8px 12px 8px 28px;
+            padding: 7px 12px 7px 24px;
             border-radius: 4px;
             cursor: default;
             position: relative;
@@ -157,7 +243,6 @@
         }
 
         .winui-option:hover { background: rgba(0, 0, 0, 0.04); }
-
         .winui-option.selected { background: rgba(0, 0, 0, 0.03); }
 
         .winui-option.selected::before {
@@ -167,8 +252,8 @@
             top: 50%;
             transform: translateY(-50%);
             width: 3px;
-            height: 16px;
-            background: #0078D4; /* Pill accent biru di kiri */
+            height: 14px;
+            background: var(--active-tab-color);
             border-radius: 4px;
         }
 
@@ -200,18 +285,20 @@
 </head>
 <body>
     <div class="titlebar">
-        <img src="assets/picture/favicon.webp" alt="Icon" class="titlebar-icon">
+        <img src="assets/picture/favicon.png" alt="Icon" class="titlebar-icon">
         <span class="titlebar-text">Pengaturan - JTN Multimedia Hub</span>
     </div>
 
     <div class="main-container">
+        <!-- SIDEBAR TABS -->
         <div class="tabs">
             <button class="tab-btn active" onclick="openTab(event, 'tab-umum')">Umum</button>
             <button class="tab-btn" onclick="openTab(event, 'tab-tampilan')">Tampilan</button>
             <button class="tab-btn" onclick="openTab(event, 'tab-slide')">Slide Show</button>
         </div>
 
-        <div class="content-area">
+        <!-- CONTENT CARD CONTAINER -->
+        <div class="content-card">
             
             <div id="tab-umum" class="tab-pane active">
                 <div class="setting-group">
@@ -330,12 +417,10 @@
         // ==========================================
         function initWinUIComboboxes() {
             document.querySelectorAll('select.jtn-select').forEach(select => {
-                // Hapus wrapper lama jika fungsi dipanggil ulang (supaya nggak double)
                 if (select.nextElementSibling && select.nextElementSibling.classList.contains('winui-select-wrapper')) {
                     select.nextElementSibling.remove();
                 }
 
-                // Buat kerangka utama
                 const wrapper = document.createElement('div');
                 wrapper.className = 'winui-select-wrapper';
                 
@@ -355,7 +440,6 @@
                 const dropdown = document.createElement('div');
                 dropdown.className = 'winui-select-dropdown';
                 
-                // Pindahkan opsi dari select asli ke div baru
                 Array.from(select.options).forEach(opt => {
                     const item = document.createElement('div');
                     item.className = 'winui-option';
@@ -363,7 +447,6 @@
                     item.innerText = opt.text;
                     item.dataset.value = opt.value;
                     
-                    // Aksi saat opsi dipilih
                     item.addEventListener('click', (e) => {
                         e.stopPropagation();
                         select.value = opt.value;
@@ -375,7 +458,6 @@
                         dropdown.classList.remove('show');
                         box.classList.remove('open');
                         
-                        // Lempar trigger 'change' agar script aslimu berjalan
                         select.dispatchEvent(new Event('change'));
                     });
                     
@@ -385,15 +467,12 @@
                 wrapper.appendChild(box);
                 wrapper.appendChild(dropdown);
                 
-                // Letakkan di sebelah select asli
                 select.parentNode.insertBefore(wrapper, select.nextSibling);
                 
-                // Aksi saat kotak diklik (Buka/Tutup)
                 box.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const isOpen = dropdown.classList.contains('show');
                     
-                    // Tutup semua combobox yang lain
                     document.querySelectorAll('.winui-select-dropdown').forEach(d => d.classList.remove('show'));
                     document.querySelectorAll('.winui-select-box').forEach(b => b.classList.remove('open'));
                     
@@ -403,7 +482,6 @@
                     }
                 });
 
-                // Jika script mengubah value select secara otomatis, sinkronisasikan tampilannya
                 select.addEventListener('change', () => {
                     const selectedOpt = select.options[select.selectedIndex];
                     if (selectedOpt) {
@@ -415,7 +493,6 @@
                 });
             });
             
-            // Klik sembarang tempat untuk menutup combobox
             document.addEventListener('click', () => {
                 document.querySelectorAll('.winui-select-dropdown').forEach(d => d.classList.remove('show'));
                 document.querySelectorAll('.winui-select-box').forEach(b => b.classList.remove('open'));
@@ -439,23 +516,31 @@
                 window.electronAPI.setAppTheme(e.target.value);
             });
 
-            // 2. Inisialisasi Startup & Background Task
-            const isStartup = await window.electronAPI.getStartupStatus();
+            // 2. Inisialisasi Startup & Background Task (ANTI-ERROR)
+            const appConfigs = await window.electronAPI.getAppConfigs();
+            const osStartup = await window.electronAPI.getStartupStatus();
+            const isStartup = osStartup || (appConfigs && appConfigs.openAtLogin) || false;
+
             const startupToggle = document.getElementById('startupToggle');
             const bgToggle = document.getElementById('bgToggle');
             const bgSettingRow = document.getElementById('bgSettingRow');
 
             startupToggle.checked = isStartup;
-            if (isStartup) bgSettingRow.classList.remove('hidden');
+            if (isStartup) {
+                bgSettingRow.classList.remove('hidden');
+            } else {
+                bgSettingRow.classList.add('hidden');
+            }
 
-            const appConfigs = await window.electronAPI.getAppConfigs();
-            bgToggle.checked = appConfigs.runInBackground;
+            bgToggle.checked = (appConfigs && appConfigs.runInBackground) ? true : false;
 
             startupToggle.addEventListener('change', (e) => {
                 const isChecked = e.target.checked;
                 window.electronAPI.toggleStartup(isChecked);
-                if (isChecked) bgSettingRow.classList.remove('hidden');
-                else {
+                
+                if (isChecked) {
+                    bgSettingRow.classList.remove('hidden');
+                } else {
                     bgSettingRow.classList.add('hidden');
                     bgToggle.checked = false; 
                     window.electronAPI.updateAppConfig('runInBackground', false);
@@ -467,9 +552,11 @@
             });
 
             // 3. Inisialisasi Projector Settings
-            document.getElementById('projThemeSelect').value = appConfigs.projTheme;
-            document.getElementById('projFontSelect').value = appConfigs.projFont;
-            document.getElementById('projSizeSelect').value = appConfigs.projSize;
+            if (appConfigs) {
+                document.getElementById('projThemeSelect').value = appConfigs.projTheme || 'dark';
+                document.getElementById('projFontSelect').value = appConfigs.projFont || "'Sora', sans-serif";
+                document.getElementById('projSizeSelect').value = appConfigs.projSize || '5.5vw';
+            }
 
             const updateProjector = () => {
                 window.electronAPI.updateAppConfig('projTheme', document.getElementById('projThemeSelect').value);
@@ -481,7 +568,6 @@
             document.getElementById('projFontSelect').addEventListener('change', updateProjector);
             document.getElementById('projSizeSelect').addEventListener('change', updateProjector);
 
-            // Ambil daftar monitor fisik secara Asynchronous
             const monSelect = document.getElementById('projMonitorSelect');
             if (window.electronAPI.getDisplays) {
                 const displays = await window.electronAPI.getDisplays();
@@ -492,13 +578,12 @@
                     monSelect.appendChild(opt);
                 });
             }
-            monSelect.value = appConfigs.projMonitor || 'auto';
+            monSelect.value = (appConfigs && appConfigs.projMonitor) || 'auto';
             monSelect.addEventListener('change', () => {
                 window.electronAPI.updateAppConfig('projMonitor', monSelect.value);
             });
 
-            // TERAKHIR: Panggil fungsi untuk mengubah semua dropdown menjadi WinUI Style!
-            // Harus dipanggil di baris paling akhir agar menangkap data Monitor yang baru dimuat
+            // Refresh tampilan Combobox kustom WinUI 3
             initWinUIComboboxes();
         });
     </script>
